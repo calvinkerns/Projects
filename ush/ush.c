@@ -37,10 +37,6 @@ void SIGhandler(int singal_num){
   }
   signal(SIGINT, SIGhandler);
   sigINT = 1;
-  //send sigint to all children
-  //for(int i = 0; i < CPIDindex; i++){
-   // kill(CPIDs[i], SIGINT);
-  //}
 }
 
 /*this looks for # to signify a comment, if found it replaces it with '\0' and
