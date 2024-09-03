@@ -1,0 +1,53 @@
+#skills {
+    overflow: hidden;
+    width: 100vw;
+    max-width: 70rem;
+    margin: 4rem auto 0;
+    padding: 8rem;
+    border: 2px solid rgb(255, 255, 255);
+}
+
+.Header {
+    font-size: 3.2rem;
+    font-weight: 600;
+    color: rgb(120, 155, 190);
+}
+
+.Paragraph1, .Paragraph3 {
+    padding-left: 4rem;
+    font-size: 2rem;
+    color: rgb(255, 255, 255);
+}
+
+.mySkills {
+    font-size: 2.5rem;
+    color: rgb(96, 156, 212);
+}
+
+.skillsList {
+    display: flex;
+    flex-wrap: wrap; /* Allows items to wrap to the next line if necessary */
+    gap: 2rem; /* Space between items */
+    margin-top: 2rem; /* Space above the skills list */
+}
+
+.language {
+    display: flex;
+    align-items: center;
+    gap: 1rem; 
+}
+
+.languagePic {
+    display: flex;
+    align-items: center;
+}
+
+.languageIMG {
+    height: 5rem;
+    width: 5rem;
+}
+
+.languageText {
+    font-size: 3rem;
+    color: rgb(255, 255, 255);
+}

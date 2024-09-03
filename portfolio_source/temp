@@ -1,0 +1,66 @@
+#skills {
+    overflow: hidden;
+    width: 100vw;
+    max-width: 70rem;
+    margin: 4rem auto 0;
+    padding: 8rem;
+    border: 2px solid rgb(255, 255, 255); /* Example border */
+}
+
+.Header{
+    font-size: 3.2rem;
+    font-weight: 600;
+    color: rgb(120, 155, 190);
+}
+
+.Paragraph1{
+    padding-left: 4rem;
+    font-size: 2rem;
+    color: rgb(255, 255, 255);
+}
+
+.Paragraph3{
+    padding-left: 4rem;
+    font-size: 2rem;
+    color: rgb(255, 255, 255);
+}
+
+.mySkills{
+    font-size: 2.5rem;
+    color: rgb(96, 156, 212);
+}
+
+.pythonIMG{
+    margin-left: 1.9rem;
+    height: 5rem;
+    width: 5rem;
+}
+
+.pythonText{
+    font-size: 3rem;
+}
+
+import React from 'react';
+import './skills.css';
+import pythonIMG from '../../assets/pythonIMG.png';
+
+const Skills = () => {
+  return (
+    <section id='skills'>
+      <span className='Header'><hr></hr><br/>About Me <br /> <br /> </span>
+      <span className='Paragraph1'>I am an adaptive problem solver and a tenacious worker. Throughout my life, I've competed at the highest levels of soccer, leading my team as captain to multiple regional championships. These experiences have honed my ability to thrive in high-stress environments and adapt to any challenges that come my way. <br/> </span>
+      <span className='Paragraph3'>Working alongside teammates and colleagues is both fulfilling and motivating for me, and I naturally establish myself as a leader among my peers. My studies in computer science have allowed me to fully apply these skills while exposing me to the incredible world of technology and the endless learning opportunities it offers, which I find continuously intriguing.<br/> </span>
+      <span className='mySkills'> <br />Skills<br /><br /></span>
+      <div className='skillsList'>
+        <div className='python'>
+          <div className='pythonPic'>
+            <img src={pythonIMG} alt="pythonImage" className='pythonIMG'/>
+          </div>
+          <span className='pythonText'>Python</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default Skills

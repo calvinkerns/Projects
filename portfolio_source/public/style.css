@@ -1,0 +1,14 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    text-decoration: border-box;
+    background: transparent;
+}
+
+body {
+    background: rgb(64, 83, 116);
+    color: white;
+    overflow: hidden;
+    overflow-y: scroll;
+}

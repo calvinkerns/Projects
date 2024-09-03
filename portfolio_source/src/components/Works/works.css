@@ -1,0 +1,39 @@
+#works {
+    box-sizing: border-box;
+    overflow: hidden;
+    width: 100vw;
+    max-width: 80rem;
+    margin: 4rem auto 0;
+    padding: 4rem;
+    border: 2px solid rgb(255, 255, 255);
+    min-height: 15rem;
+}
+
+.header {
+    font-size: 3.5rem;
+    font-weight: 600;
+    color: rgb(120, 155, 190);
+    text-align: center;
+}
+
+.project{
+    margin-bottom: 3rem;
+}
+
+.projectName{
+    font-size: 2.5rem;
+    padding-bottom: 2rem;
+}
+
+.projectPara{
+    font-size: 2rem;
+    padding-left: 4rem;
+}
+
+.GitHub{
+    font-size: 2rem;
+}
+
+.githubHyper{
+    font-size: 2rem;
+}
