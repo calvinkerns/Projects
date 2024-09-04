@@ -1,2 +1,2 @@
 # Projects
-These are some projects of mine that I found a lot of interest and enjoyment while creating. Part are personal project while others are from my classes at Western Washington University where I am studying to get my masters in Computer Science.
+These are some projects that I found particularly interesting and enjoyable to create. Some are personal projects, while others were completed as part of my coursework at Western Washington University, where I am pursuing a master’s degree in Computer Science.
