@@ -306,7 +306,7 @@ int expand(char *orig, char *new, int newsize)
                 // compare context with filenames
                 while (((DirRead = readdir(openedDir)) != NULL) && (leading == 1))
                 {
-                    for (int i = 0; i < strlen(context); i++)
+                    for (size_t i = 0; i < strlen(context); i++)
                     {
                         if (context[i] == '/')
                         {

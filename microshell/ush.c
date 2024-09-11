@@ -31,12 +31,13 @@ int alivechild;
 
 int processline (char *line, int inputFD, int outputFD, int flags);
 
-void SIGhandler(int singal_num){ 
+void SIGhandler(int signal_num){ 
   if(alivechild){
     kill(alivechild, SIGINT);
   }
   signal(SIGINT, SIGhandler);
   sigINT = 1;
+  (void)signal_num;
 }
 
 /*this looks for # to signify a comment, if found it replaces it with '\0' and

@@ -182,7 +182,7 @@ int execBuiltin(char **args, int argNumber, int outfd){
                 snprintf(GID, 20, "%d", stats.st_gid);
             }
             else{
-                grp == NULL;
+                grp = NULL;
                 grnm = grp->gr_name;
             }
 
