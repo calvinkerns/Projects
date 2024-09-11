@@ -98,7 +98,7 @@ int expand(char *orig, char *new, int newsize)
             *origTemp = 0;
             char *env = getenv(name);
 
-            // go through environment and copy into new
+            // go through environment  and copy into new
             while (env && *env != 0)
             {
                 // check for overflowing buffer
