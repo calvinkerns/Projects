@@ -1,0 +1,57 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #000;
+    font-family: Arial, sans-serif;
+}
+
+#glcanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+#controls {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 15px;
+    border-radius: 8px;
+    color: white;
+    z-index: 100;
+    min-width: 200px;
+}
+
+button {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    margin: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background: #45a049;
+}
+
+.file-input {
+    background: #4CAF50;
+    color: white;
+    padding: 8px 15px;
+    margin: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    border: none;
+    transition: background-color 0.3s;
+}
+
+.file-input:hover {
+    background: #45a049;
+}
