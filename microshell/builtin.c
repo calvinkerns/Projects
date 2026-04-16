@@ -165,7 +165,7 @@ int execBuiltin(char **args, int argNumber, int outfd){
 
             //print user stuff
             struct passwd *password = getpwuid(stats.st_uid);
-            char *usrnm;
+            char *usrnm = NULL;
             char UID[20];
             if(password == NULL){
                 snprintf(UID, 20, "%d", stats.st_uid);
@@ -176,13 +176,12 @@ int execBuiltin(char **args, int argNumber, int outfd){
 
             //print group stuff
             struct group *grp = getgrgid(stats.st_gid);
-            char *grnm;
+            char *grnm = NULL;
             char GID[20];
             if(grp == NULL){
                 snprintf(GID, 20, "%d", stats.st_gid);
             }
             else{
-                grp = NULL;
                 grnm = grp->gr_name;
             }
 
