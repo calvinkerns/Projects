@@ -1,0 +1,14 @@
+{
+  "name": "surge-arena",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/",
+    "match": "node tools/match.js",
+    "tournament": "node tools/tournament.js",
+    "serve": "python3 -m http.server 8000"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.10.0"
+  }
+}
