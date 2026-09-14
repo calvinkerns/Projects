@@ -1,4 +1,2 @@
-// Idler: never moves. Any bot that can't beat this has a bug.
-function bot(s) {
-  return [];
-}
+// Idler: never moves. If your bot can't beat this, it has a bug.
+function bot(game) {}

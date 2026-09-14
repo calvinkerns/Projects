@@ -2,7 +2,7 @@
 
 import { RULES } from './engine.js';
 import { createViewer } from './viewer.js';
-import { runMatch, TICK_LIMIT_MS, INIT_LIMIT_MS } from './match.js';
+import { runMatch, TICK_LIMIT_MS } from './match.js';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -21,9 +21,7 @@ let running = null; // AbortController for the match or tournament in progress
 // ------------------------------------------------------------------ docs
 
 for (const node of document.querySelectorAll('[data-rule]')) node.textContent = String(RULES[node.dataset.rule]);
-for (const node of document.querySelectorAll('[data-limit]')) {
-  node.textContent = String(node.dataset.limit === 'init' ? INIT_LIMIT_MS : TICK_LIMIT_MS);
-}
+for (const node of document.querySelectorAll('[data-limit]')) node.textContent = String(TICK_LIMIT_MS);
 $('docs-open').addEventListener('click', () => $('docs').showModal());
 $('docs-close').addEventListener('click', () => $('docs').close());
 
@@ -40,12 +38,12 @@ function updateGutter() {
 function setSource(source) {
   code.value = source;
   updateGutter();
-  store.set('surge.source', source);
+  store.set('surge-lite.source', source);
 }
 
 let tabLeavesEditor = false;
 code.addEventListener('focus', () => { tabLeavesEditor = false; });
-code.addEventListener('input', () => { updateGutter(); store.set('surge.source', code.value); });
+code.addEventListener('input', () => { updateGutter(); store.set('surge-lite.source', code.value); });
 code.addEventListener('scroll', () => { $('gutter').scrollTop = code.scrollTop; });
 code.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { tabLeavesEditor = true; return; }
@@ -60,8 +58,10 @@ code.addEventListener('keydown', (e) => {
   if (e.key !== 'Tab') tabLeavesEditor = false;
 });
 
-nameInput.addEventListener('input', () => store.set('surge.name', nameInput.value));
+nameInput.addEventListener('input', () => store.set('surge-lite.name', nameInput.value));
 const botName = () => nameInput.value.trim().slice(0, 24) || 'My bot';
+const arenaSize = () => Number($('size').value);
+$('size').addEventListener('change', () => store.set('surge-lite.size', $('size').value));
 
 $('template').addEventListener('change', () => {
   const select = $('template');
@@ -153,6 +153,7 @@ async function fight() {
       a: { name: botName(), source: code.value },
       b: { name: opponent.name, source: opponent.source },
       seed: Number($('seed').value) >>> 0,
+      rules: { size: arenaSize() },
       signal: controller.signal,
       onProgress: (tick, max) => status(`Fighting ${opponent.name}… tick ${tick} / ${max}`),
     });
@@ -199,7 +200,7 @@ async function tournament() {
   box.hidden = false;
   box.replaceChildren();
   const heading = document.createElement('h2');
-  heading.textContent = `Tournament: ${me.name} vs every bot, ${TOURNAMENT_SEEDS} maps each`;
+  heading.textContent = `Tournament: ${me.name} vs every bot, ${TOURNAMENT_SEEDS} maps each, ${arenaSize()}×${arenaSize()}`;
   const progress = document.createElement('div');
   progress.className = 'progress';
   const bar = document.createElement('div');
@@ -237,7 +238,7 @@ async function tournament() {
         if (controller.signal.aborted) throw new DOMException('Cancelled', 'AbortError');
         const swap = k % 2 === 1;
         const them = { name: row.opponent.name, source: row.opponent.source };
-        const { replay } = await runMatch({ a: swap ? them : me, b: swap ? me : them, seed: 1000 + k * 7919, signal: controller.signal });
+        const { replay } = await runMatch({ a: swap ? them : me, b: swap ? me : them, seed: 1000 + k * 7919, rules: { size: arenaSize() }, signal: controller.signal });
         const mySide = swap ? 1 : 0;
         const { winner } = replay.result;
         if (winner === -1) { row.d++; tally.d++; }
@@ -319,7 +320,7 @@ async function readHash() {
   try {
     if (params.has('replay')) {
       const replay = JSON.parse(await unpack(params.get('replay')));
-      if (!replay || !Array.isArray(replay.orders) || replay.orders.length > 5000) throw new Error('not a valid replay');
+      if (!replay || !Array.isArray(replay.moves) || replay.moves.length > 5000) throw new Error('not a valid replay');
       showReplay(replay);
       status('Shared replay loaded.');
       return true;
@@ -353,7 +354,9 @@ window.addEventListener('hashchange', () => location.reload());
 // ------------------------------------------------------------------ start
 
 async function start() {
-  nameInput.value = store.get('surge.name') || 'My bot';
+  nameInput.value = store.get('surge-lite.name') || 'My bot';
+  const savedSize = store.get('surge-lite.size');
+  if (['11', '15', '21'].includes(savedSize)) $('size').value = savedSize;
   $('seed').value = String(Math.floor(Math.random() * 1e6));
   const demo = fetch('replays/demo.json').then((r) => r.json());
 
@@ -368,10 +371,10 @@ async function start() {
     option.title = bot.blurb;
     $('template').append(option);
   }
-  setSource(store.get('surge.source') ?? seedBots.find((b) => b.id === 'starter.js')?.source ?? '');
+  setSource(store.get('surge-lite.source') ?? seedBots.find((b) => b.id === 'starter.js')?.source ?? '');
 
   const openedReplay = await readHash();
-  const defaultOpponent = seedBots.find((b) => b.id === 'sprawl.js') || seedBots[0];
+  const defaultOpponent = seedBots.find((b) => b.id === 'grower.js') || seedBots[0];
   fillOpponents(challenger ? challenger.id : defaultOpponent.id);
   if (!openedReplay) showReplay(await demo);
 }

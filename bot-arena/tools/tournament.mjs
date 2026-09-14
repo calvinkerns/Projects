@@ -1,5 +1,5 @@
 // Round-robin tournament for balance testing.
-//   node tools/tournament.mjs [--seeds 20] [--mirror] bot1.js bot2.js ...
+//   node tools/tournament.mjs [--seeds 20] [--size 15] [--rule name=value]... [--mirror] bot1.js bot2.js ...
 //
 // Each pair plays every seed once, swapping which bot is player 0 on alternate
 // seeds. --mirror also plays each bot against itself: player 0 should win about
@@ -16,6 +16,13 @@ const take = (flag, fallback) => {
   return v;
 };
 const seeds = Number(take('--seeds', 20));
+const size = Number(take('--size', 15));
+const rules = { size };
+for (let i = args.indexOf('--rule'); i >= 0; i = args.indexOf('--rule')) {
+  const [key, value] = args[i + 1].split('=');
+  rules[key] = Number(value);
+  args.splice(i, 2);
+}
 const mirrorAt = args.indexOf('--mirror');
 const mirror = mirrorAt >= 0;
 if (mirror) args.splice(mirrorAt, 1);
@@ -36,7 +43,7 @@ const t0 = performance.now();
 function play(i, j, k) {
   const swap = k % 2 === 1;
   const [p0, p1] = swap ? [j, i] : [i, j];
-  const { replay, cpu, errors } = playMatch(bots[p0], bots[p1], seedFor(k));
+  const { replay, cpu, errors } = playMatch(bots[p0], bots[p1], seedFor(k), { rules });
   const r = replay.result;
   const key = r.reason.startsWith('crashed') ? 'crashed' : r.reason;
   reasons[key] = (reasons[key] || 0) + 1;
@@ -55,7 +62,7 @@ if (mirror) {
   for (let i = 0; i < n; i++) {
     let w = 0, d = 0, dr = 0;
     for (let k = 0; k < seeds; k++) {
-      const { replay } = playMatch(bots[i], bots[i], seedFor(k));
+      const { replay } = playMatch(bots[i], bots[i], seedFor(k), { rules });
       if (replay.result.winner === -1) dr++;
       else { d++; if (replay.result.winner === 0) w++; }
     }
@@ -79,7 +86,7 @@ if (n >= 2) {
   const w = Math.max(...bots.map((b) => b.name.length), 6);
   const short = (s) => s.slice(0, 6).padStart(7);
 
-  console.log(`\n${matches} matches, ${seeds} seeds per pair, ${((performance.now() - t0) / 1000).toFixed(1)}s`);
+  console.log(`\n${matches} matches with ${JSON.stringify(rules)}, ${seeds} seeds per pair, ${((performance.now() - t0) / 1000).toFixed(1)}s`);
   console.log(`\nWin share (row vs column):`);
   console.log(' '.repeat(w + 2) + order.map((j) => short(bots[j].name)).join(''));
   for (const i of order) {

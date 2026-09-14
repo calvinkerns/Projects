@@ -7,14 +7,7 @@
 .sv-name { font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sv-p0 .sv-name { color: var(--p0); }
 .sv-p1 .sv-name { color: var(--p1); }
-.sv-energy { height: 6px; margin: 4px 0 2px; background: #1a2130; border-radius: 3px; overflow: hidden; display: flex; }
-.sv-p1 .sv-energy { justify-content: flex-end; }
-.sv-energy-fill { height: 100%; width: 0; transition: width 0.1s linear; }
-.sv-p0 .sv-energy-fill { background: var(--p0); }
-.sv-p1 .sv-energy-fill { background: var(--p1); }
-.sv-surge.sv-p0 .sv-energy { box-shadow: 0 0 10px var(--p0); }
-.sv-surge.sv-p1 .sv-energy { box-shadow: 0 0 10px var(--p1); }
-.sv-energy-label { font-size: 11px; color: #8791a3; font-variant-numeric: tabular-nums; }
+.sv-stats { font-size: 11px; color: #8791a3; font-variant-numeric: tabular-nums; }
 .sv-tick { color: #8791a3; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; padding-bottom: 2px; }
 
 .sv-bars { display: flex; height: 16px; border-radius: 4px; overflow: hidden; background: #131926; font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -29,17 +22,10 @@
 .sv-win-p0 { border-color: var(--p0); color: var(--p0); }
 .sv-win-p1 { border-color: var(--p1); color: var(--p1); }
 
-.sv-timeline { position: relative; padding-top: 12px; }
-.sv-pips { position: absolute; left: 8px; right: 8px; top: 0; height: 10px; }
-.sv-pip { position: absolute; top: 1px; width: 8px; height: 8px; margin-left: -4px; padding: 0; border: 0; border-radius: 50%; background: #8791a3; cursor: pointer; }
-.sv-pip-p0 { background: var(--p0); }
-.sv-pip-p1 { background: var(--p1); }
-.sv-pip-surge { border-radius: 1px; transform: rotate(45deg); }
-.sv-pip-end { top: 0; width: 3px; height: 10px; margin-left: -1px; border-radius: 1px; background: #fff; }
-.sv-scrub { width: 100%; margin: 0; accent-color: #7d8cff; }
+.sv-scrub { width: 100%; margin: 2px 0 0; accent-color: #7d8cff; }
 
 .sv-controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .sv-btn, .sv-select { background: #171d29; color: #d7deea; border: 1px solid #2a3344; border-radius: 6px; padding: 5px 10px; font: inherit; cursor: pointer; }
 .sv-btn { min-width: 38px; }
 .sv-btn:hover, .sv-select:hover { border-color: #3d4a62; }
-.sv-btn:focus-visible, .sv-select:focus-visible, .sv-pip:focus-visible, .sv-scrub:focus-visible { outline: 2px solid #7d8cff; outline-offset: 2px; }
+.sv-btn:focus-visible, .sv-select:focus-visible, .sv-scrub:focus-visible { outline: 2px solid #7d8cff; outline-offset: 2px; }

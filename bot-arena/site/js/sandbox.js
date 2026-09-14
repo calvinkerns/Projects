@@ -1,9 +1,12 @@
 // Runs one untrusted bot in its own Web Worker.
 //
 // The bot's source is pasted into the worker script as text (no eval), after a
-// prelude that removes network and storage APIs and makes time and randomness
-// deterministic. The page's Content-Security-Policy is inherited by the worker,
-// so even a bot that undoes the prelude can't reach other hosts.
+// prelude that removes network and storage APIs, makes time and randomness
+// deterministic, and defines the friendly game API. The page's
+// Content-Security-Policy is inherited by the worker, so even a bot that undoes
+// the prelude can't reach other hosts.
+
+import { makeGame } from './botapi.js';
 
 const LOG_LINES_PER_TICK = 30;
 const LOG_LINES_PER_MATCH = 500;
@@ -26,43 +29,39 @@ function prelude(seed) {
     '    try { if (Object.prototype.hasOwnProperty.call(o, name)) Object.defineProperty(o, name, { value: undefined, writable: false, configurable: false }); } catch (e) {}',
     '  }',
     '}',
-    'const __api = (function () {',
+    `const __makeGame = ${makeGame.toString()};`,
+    'const __bot = (function () {',
     '"use strict";',
-  ];
+  ].join('\n');
 }
 
 const EPILOGUE = [
   '',
-  ';return { bot: typeof bot === "function" ? bot : null, init: typeof init === "function" ? init : null };',
+  ';return typeof bot === "function" ? bot : null;',
   '})();',
   'self.onmessage = (event) => {',
-  '  const { type, view } = event.data;',
+  '  const view = event.data;',
   '  __tick = view.tick;',
   '  __logs = [];',
-  '  let orders = [], error = null;',
+  '  if (!__bot) { __post({ fatal: "no bot(game) function defined", logs: [] }); return; }',
+  '  let move = null, error = null;',
   '  try {',
-  '    if (type === "init") {',
-  '      if (!__api.bot) throw new Error("no bot(state) function defined");',
-  '      if (__api.init) __api.init(view);',
-  '    } else {',
-  '      const result = __api.bot(view);',
-  '      orders = Array.isArray(result) ? result : [];',
-  '    }',
+  '    const result = __bot(__makeGame(view));',
+  '    if (result && Number.isInteger(result.from) && Number.isInteger(result.dir)) move = { from: result.from, dir: result.dir };',
   '  } catch (e) {',
   '    error = { message: String(e && e.message !== undefined ? e.message : e), stack: String((e && e.stack) || "") };',
   '  }',
-  '  try { __post({ orders, logs: __logs, error }); }',
-  '  catch (e) { __post({ orders: [], logs: __logs, error: { message: "orders could not be sent: " + e.message, stack: "" } }); }',
+  '  __post({ move, logs: __logs, error });',
   '};',
-];
+].join('\n');
 
-// Returns { call(type, view, limitMs) -> Promise<reply>, terminate() }.
-// A reply is { orders, logs, error } or, when the bot is dead, { fatal, logs }.
+// Returns { tick(view, limitMs) -> Promise<reply>, terminate() }.
+// A reply is { move, logs, error } or, when the bot is dead, { fatal, logs }.
 export function createBotRunner({ source, seed }) {
   const head = prelude(seed);
-  const offset = head.length; // the user's line 1 is script line offset + 1
+  const offset = head.split('\n').length; // the user's line 1 is script line offset + 1
   const userLines = source.split('\n').length;
-  const url = URL.createObjectURL(new Blob([[...head, source, ...EPILOGUE].join('\n')], { type: 'text/javascript' }));
+  const url = URL.createObjectURL(new Blob([`${head}\n${source}${EPILOGUE}`], { type: 'text/javascript' }));
   const worker = new Worker(url);
   let pending = null;
   let dead = null;
@@ -94,8 +93,14 @@ export function createBotRunner({ source, seed }) {
 
   worker.onmessage = (event) => {
     const d = event.data || {};
+    if (d.fatal) {
+      const reason = `crashed on load: ${d.fatal}`;
+      kill(reason);
+      settle({ fatal: reason, logs: [] });
+      return;
+    }
     const error = d.error ? { message: String(d.error.message), line: lineFromStack(String(d.error.stack || '')) } : null;
-    settle({ orders: d.orders, logs: Array.isArray(d.logs) ? d.logs : [], error });
+    settle({ move: d.move ?? null, logs: Array.isArray(d.logs) ? d.logs : [], error });
   };
   worker.onerror = (event) => {
     event.preventDefault();
@@ -106,16 +111,16 @@ export function createBotRunner({ source, seed }) {
   };
 
   return {
-    call(type, view, limitMs) {
+    tick(view, limitMs) {
       return new Promise((resolve) => {
         if (dead) return resolve({ fatal: dead, logs: [] });
         const timer = setTimeout(() => {
-          const reason = type === 'init' ? 'timed out while loading' : `timed out on tick ${view.tick}`;
+          const reason = `timed out on tick ${view.tick}`;
           kill(reason);
           settle({ fatal: reason, logs: [] });
         }, limitMs);
         pending = { resolve, timer };
-        worker.postMessage({ type, view });
+        worker.postMessage(view);
       });
     },
     terminate() {

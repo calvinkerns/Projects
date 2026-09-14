@@ -35,6 +35,13 @@
     <p class="hint">Tab indents. Esc then Tab leaves the editor. Ctrl/⌘ + Enter fights.</p>
     <div class="row run">
       <label class="field">Opponent <select id="opponent"></select></label>
+      <label class="field">Arena
+        <select id="size">
+          <option value="11">Small 11×11</option>
+          <option value="15" selected>Medium 15×15</option>
+          <option value="21">Large 21×21</option>
+        </select>
+      </label>
       <label class="field">Map seed
         <span class="seed"><input id="seed" type="number" min="0" step="1"><button type="button" id="reseed" class="btn icon" aria-label="Random map seed">⟳</button></span>
       </label>
@@ -66,51 +73,44 @@
     <button type="button" id="docs-close" class="btn small">Close</button>
   </div>
 
-  <h3>The game</h3>
-  <ul>
-    <li>The board is 21×21. Every tile belongs to you, your opponent, or nobody, and holds some <b>mass</b>. Walls block movement.</li>
-    <li>Each tick your bot returns up to <span data-rule="maxOrders"></span> <b>orders</b>. An order pushes half the mass on one of your tiles (or all of it) into a neighbouring tile.</li>
-    <li>Every order costs 1 <b>energy</b>. You gain <span data-rule="energyRegen"></span> per tick and can bank up to <span data-rule="energyCap"></span>, so you can save up for a big coordinated strike or spend as you go.</li>
-    <li><b>Combat is subtraction.</b> Opposing masses arriving on the same tile cancel out, and you only capture a tile by bringing strictly more mass than is on it.</li>
-    <li>Your core and the wells you own gain 1 mass every tick. Other tiles gain 1 every <span data-rule="pulseEvery"></span> ticks. Neutral wells start with <span data-rule="wellMass"></span> mass.</li>
-    <li><b>Capture the enemy core to win.</b> If nobody does, the most tiles after <span data-rule="maxTicks"></span> ticks wins. You can only see tiles next to tiles you own.</li>
-  </ul>
+  <h3>The rules</h3>
+  <ol>
+    <li>Every tick, your bot makes <b>one move</b>: it sends all but 1 of the mass on one of your tiles to a neighbouring tile.</li>
+    <li>Moving onto a tile that isn't yours starts a fight. <b>The bigger number wins</b> and keeps the difference.</li>
+    <li>Your <b>core</b> (the diamond) grows by 1 every tick. Your other tiles grow by 1 every <span data-rule="growEvery"></span> ticks.</li>
+    <li><b>Take the enemy core to win.</b> Cores are tough: you need more than double a core's mass to take it. If nobody does in time, whoever owns the most tiles wins.</li>
+  </ol>
 
   <h3>Your bot</h3>
-  <p>Define <code>function bot(state)</code> and return an array of orders. You can also define <code>function init(state)</code>, which runs once before the first tick. Top-level variables keep their values for the whole match.</p>
-  <pre class="code-sample">function bot(state) {
-  // Push half of my core's mass east, every tick.
-  const myCore = state.cores[0];
-  return [{ from: myCore, dir: 1 }];
+  <p>Write <code>function bot(game)</code> and return one move with <code>tile.moveTo(neighbour)</code>. Return nothing to wait. Variables outside <code>bot</code> keep their values for the whole match.</p>
+  <pre class="code-sample">function bot(game) {
+  // Take my biggest stack and march it at the enemy core.
+  const biggest = game.myTiles.sort((a, b) => b.mass - a.mass)[0];
+  return biggest.moveTo(biggest.stepToward(game.enemyCore));
 }</pre>
 
-  <h3>Orders</h3>
-  <p><code>{ from, dir, all }</code>: <code>from</code> is a tile index (<code>y * 21 + x</code>), <code>dir</code> is 0 north, 1 east, 2 south or 3 west, and <code>all: true</code> sends everything instead of half. Invalid orders are skipped and cost nothing.</p>
-
-  <h3>The state object</h3>
+  <h3>What you can use</h3>
   <div class="ref-wrap">
     <table class="ref">
-      <tr><td>tick</td><td>Current tick, starting at 0</td></tr>
-      <tr><td>me</td><td>Your player number, 0 or 1</td></tr>
-      <tr><td>energy</td><td>Your current energy</td></tr>
-      <tr><td>maxOrders, maxTicks, rules</td><td>Game constants</td></tr>
-      <tr><td>W, H</td><td>Board width and height (21)</td></tr>
-      <tr><td>terrain</td><td>Int8Array: 0 plain, 1 wall, 2 well, 3 core</td></tr>
-      <tr><td>owner</td><td>Int8Array: -2 fog, -1 neutral, 0 or 1</td></tr>
-      <tr><td>mass</td><td>Int32Array: -1 under fog</td></tr>
-      <tr><td>visible</td><td>Uint8Array: 1 where you can see</td></tr>
-      <tr><td>cores</td><td>[yourCore, enemyCore] as tile indices</td></tr>
-      <tr><td>wells</td><td>Tile indices of every well</td></tr>
-      <tr><td>tileCount</td><td>[yours, theirs]: always visible</td></tr>
-      <tr><td>myMass</td><td>Your total mass</td></tr>
+      <tr><td>game.myTiles</td><td>Your tiles (also <code>enemyTiles</code>, <code>neutralTiles</code>, and <code>tiles</code> for all of them)</td></tr>
+      <tr><td>game.myCore, game.enemyCore</td><td>The two cores</td></tr>
+      <tr><td>game.tile(x, y)</td><td>The tile at x, y</td></tr>
+      <tr><td>game.tick, game.maxTicks, game.size</td><td>The current tick, when the match ends, and the arena width</td></tr>
+      <tr><td>tile.mass, tile.x, tile.y</td><td>Its mass and position</td></tr>
+      <tr><td>tile.mine, tile.enemy, tile.neutral, tile.wall, tile.core</td><td>true or false</td></tr>
+      <tr><td>tile.neighbors</td><td>The tiles next to it that you can move to</td></tr>
+      <tr><td>tile.moveTo(other)</td><td>The move to return. <code>other</code> must be a neighbour.</td></tr>
+      <tr><td>tile.stepToward(other)</td><td>The neighbour one step closer to <code>other</code>, walking around walls</td></tr>
+      <tr><td>tile.distanceTo(other)</td><td>How many steps away <code>other</code> is</td></tr>
+      <tr><td>tile.closest(list)</td><td>The tile in <code>list</code> that's the fewest steps away</td></tr>
     </table>
   </div>
 
-  <h3>Limits and sandbox</h3>
+  <h3>Limits</h3>
   <ul>
-    <li>Each tick must finish within <span data-limit="tick"></span> ms (<code>init</code>: <span data-limit="init"></span> ms) or your bot forfeits.</li>
-    <li>If <code>bot()</code> throws, you do nothing that tick and the error shows in the console.</li>
-    <li>Bots run in a Web Worker with no network access. <code>Math.random</code> is seeded, so every match replays exactly, and <code>console.log</code> prints to the console panel.</li>
+    <li>Each tick must finish within <span data-limit></span> ms or your bot forfeits.</li>
+    <li>If <code>bot()</code> throws, you don't move that tick and the error shows in the console.</li>
+    <li>Bots run in a sandbox with no network access. <code>console.log</code> prints to the console panel.</li>
   </ul>
 </dialog>
 </body>
