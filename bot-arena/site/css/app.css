@@ -69,3 +69,6 @@ code { padding: 1px 5px; background: #171d29; border-radius: 4px; }
 .ref { width: 100%; border-collapse: collapse; font-size: 13px; }
 .ref td { padding: 4px 8px; vertical-align: top; border-bottom: 1px solid var(--line); }
 .ref td:first-child { font-family: ui-monospace, Menlo, monospace; color: var(--p1); white-space: nowrap; }
+
+[hidden] { display: none !important; }
+.btn.icon { font-size: 16px; line-height: 1; }
