@@ -1,12 +1,11 @@
 {
-  "name": "surge-arena",
+  "name": "bot-arena",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test test/",
-    "match": "node tools/match.js",
-    "tournament": "node tools/tournament.js",
-    "serve": "python3 -m http.server 8000"
+    "serve": "node tools/serve.mjs 8080",
+    "test": "node tools/test.mjs",
+    "tournament": "node tools/tournament.mjs site/bots/*.js"
   },
   "devDependencies": {
     "puppeteer-core": "^25.10.0"
