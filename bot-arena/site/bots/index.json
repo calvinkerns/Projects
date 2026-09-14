@@ -1,0 +1,8 @@
+[
+  { "file": "idler.js", "name": "Idler", "blurb": "Never moves. If you can't beat this, you have a bug." },
+  { "file": "drunkard.js", "name": "Drunkard", "blurb": "Random tiles, random directions, spends every order." },
+  { "file": "sprawl.js", "name": "Sprawl", "blurb": "Pushes its biggest stack into the nearest unowned tile." },
+  { "file": "starter.js", "name": "Starter", "blurb": "Captures what it can beat and marches stacks to the border." },
+  { "file": "prospector.js", "name": "Prospector", "blurb": "Expands efficiently and hunts wells." },
+  { "file": "raider.js", "name": "Raider", "blurb": "Builds up, then rushes your core." }
+]
