@@ -37,11 +37,13 @@
       <label class="field">Opponent <select id="opponent"></select></label>
       <label class="field">Arena
         <select id="size">
-          <option value="11">Small 11×11</option>
-          <option value="15" selected>Medium 15×15</option>
-          <option value="21">Large 21×21</option>
+          <option value="15">15×15</option>
+          <option value="21" selected>21×21</option>
+          <option value="31">31×31</option>
+          <option value="41">41×41</option>
         </select>
       </label>
+      <label class="field">Ticks <input id="ticks" type="number" min="400" max="20000" step="100"></label>
       <label class="field">Map seed
         <span class="seed"><input id="seed" type="number" min="0" step="1"><button type="button" id="reseed" class="btn icon" aria-label="Random map seed">⟳</button></span>
       </label>
@@ -78,8 +80,10 @@
     <li>Every tick, your bot makes <b>one move</b>: it sends all but 1 of the mass on one of your tiles to a neighbouring tile.</li>
     <li>Moving onto a tile that isn't yours starts a fight. <b>The bigger number wins</b> and keeps the difference.</li>
     <li>Your <b>core</b> (the diamond) grows by 1 every tick. Your other tiles grow by 1 every <span data-rule="growEvery"></span> ticks.</li>
-    <li><b>Take the enemy core to win.</b> Cores are tough: you need more than double a core's mass to take it. If nobody does in time, whoever owns the most tiles wins.</li>
+    <li><b>Take the enemy core to win.</b> If nobody does before the tick limit, whoever owns the most tiles wins.</li>
   </ol>
+
+  <p>You pick the arena size and the tick limit (400 to 20000) above the Fight button.</p>
 
   <h3>Your bot</h3>
   <p>Write <code>function bot(game)</code> and return one move with <code>tile.moveTo(neighbour)</code>. Return nothing to wait. Variables outside <code>bot</code> keep their values for the whole match.</p>

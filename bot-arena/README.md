@@ -1,6 +1,6 @@
 # Surge
 
-A tiny bot arena that runs entirely in your browser. Write a JavaScript bot, fight the built-in bots on a small, medium or large arena, and watch the replay.
+A tiny bot arena that runs entirely in your browser. Write a JavaScript bot, fight the built-in bots on an arena from 15×15 to 41×41 with a tick limit you choose, and watch the replay.
 
 ## Run it
 
@@ -15,7 +15,7 @@ The site has no build step and no dependencies. It's plain HTML, CSS and ES modu
 1. Every tick, your bot makes one move: it sends all but 1 of the mass on one of your tiles to a neighbouring tile.
 2. Moving onto a tile that isn't yours starts a fight. The bigger number wins and keeps the difference.
 3. Your core grows by 1 every tick. Your other tiles grow by 1 every 10 ticks.
-4. Take the enemy core to win. Cores are tough: you need more than double a core's mass to take it. If nobody does in time, whoever owns the most tiles wins.
+4. Take the enemy core to win. If nobody does before the tick limit, whoever owns the most tiles wins.
 
 ## A bot
 

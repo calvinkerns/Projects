@@ -1,6 +1,6 @@
 // Engine and bot API invariants. Run with: node tools/test.mjs
 
-import { SIZES, WALL, createMatch, generateMap, step, neighbor, replayFrames, viewFor, rng32 } from '../site/js/engine.js';
+import { SIZES, WALL, MIN_TICKS, MAX_TICKS, RULES, createMatch, generateMap, step, neighbor, buildReplay, makeRules, viewFor, rng32 } from '../site/js/engine.js';
 import { makeGame } from '../site/js/botapi.js';
 import { loadBot, playMatch, seedFor } from './lib.mjs';
 
@@ -11,7 +11,7 @@ const check = (ok, msg) => { if (!ok) { failures++; console.log(`FAIL: ${msg}`);
 for (const size of SIZES) {
   const n = size * size;
   const rot = (i) => n - 1 - i;
-  for (let k = 0; k < 100; k++) {
+  for (let k = 0; k < 40; k++) {
     const { terrain, cores } = generateMap(seedFor(k), size, 12);
     let symmetric = true;
     for (let i = 0; i < n; i++) if (terrain[i] !== terrain[rot(i)]) symmetric = false;
@@ -35,8 +35,8 @@ for (const size of SIZES) {
 for (const size of SIZES) {
   const n = size * size;
   const rot = (i) => n - 1 - i;
-  for (let k = 0; k < 15; k++) {
-    const state = createMatch(seedFor(k), { size });
+  for (let k = 0; k < 8; k++) {
+    const state = createMatch(seedFor(k), { size, maxTicks: 400 });
     const rand = rng32(k + 7);
     let symmetric = true;
     while (!state.result && symmetric) {
@@ -59,9 +59,9 @@ for (const size of SIZES) {
 const bots = ['grower', 'wanderer', 'rusher', 'captain'].map((b) => loadBot(`site/bots/${b}.js`));
 for (let k = 0; k < 12; k++) {
   const size = SIZES[k % SIZES.length];
-  const { replay, state } = playMatch(bots[k % 4], bots[(k + 1) % 4], seedFor(k), { rules: { size } });
-  const rebuilt = replayFrames(JSON.parse(JSON.stringify(replay)));
-  const last = rebuilt.frames[rebuilt.frames.length - 1];
+  const { replay, state } = playMatch(bots[k % 4], bots[(k + 1) % 4], seedFor(k), { rules: { size, maxTicks: 400 } });
+  const rebuilt = buildReplay(JSON.parse(JSON.stringify(replay)), 16);
+  const last = rebuilt.frameAt(rebuilt.length);
   check(rebuilt.size === size, `replay ${k} size`);
   check(last.tick === state.tick, `replay ${k} tick ${last.tick} != ${state.tick}`);
   check(last.owner.every((v, i) => v === state.owner[i]) && last.mass.every((v, i) => v === state.mass[i]), `replay ${k} board mismatch`);
@@ -70,14 +70,14 @@ for (let k = 0; k < 12; k++) {
 
 // 4. The bot API sees the board from the right side and its helpers work.
 {
-  const state = createMatch(seedFor(3), { size: 11 });
+  const state = createMatch(seedFor(3), { size: 15 });
   const game = makeGame(viewFor(state, 1));
   check(game.myCore.index === state.cores[1] && game.myCore.mine && game.enemyCore.enemy, 'cores from player 1 side');
   check(game.myTiles.length === 1 && game.enemyTiles.length === 1, 'one tile each at the start');
   const next = game.myCore.stepToward(game.enemyCore);
   check(next && next.distanceTo(game.enemyCore) === game.myCore.distanceTo(game.enemyCore) - 1, 'stepToward gets closer');
   const move = game.myCore.moveTo(next);
-  check(move && neighbor(11, move.from, move.dir) === next.index, 'moveTo picks the right direction');
+  check(move && neighbor(15, move.from, move.dir) === next.index, 'moveTo picks the right direction');
   check(game.myCore.moveTo(game.enemyCore) === null, 'moveTo refuses tiles that are not neighbours');
   check(game.tiles.every((t) => t.neighbors.every((nb) => !nb.wall)), 'neighbors never include walls');
   check(game.tile(0, 0) === game.tiles[0] && game.tile(-1, 0) === null, 'tile(x, y)');
@@ -85,11 +85,11 @@ for (let k = 0; k < 12; k++) {
 
 // 5. Combat arithmetic: a move sends all but 1, and the bigger number wins.
 {
-  const state = createMatch(seedFor(5), { size: 15 });
+  const state = createMatch(seedFor(5), { size: 21 });
   const c = state.cores[0];
   let t = -1, dir = -1;
   for (let d = 0; d < 4; d++) {
-    const j = neighbor(15, c, d);
+    const j = neighbor(21, c, d);
     if (j >= 0 && state.terrain[j] !== WALL) { t = j; dir = d; break; }
   }
   state.mass[c] = 21;
@@ -102,24 +102,31 @@ for (let k = 0; k < 12; k++) {
   check(state.tick === 2, 'junk moves are ignored');
 }
 
-// 6. Cores fight at double strength.
+// 6. The tick limit is chosen by the player, within bounds.
 {
-  const state = createMatch(seedFor(6), { size: 11 });
-  const core = state.cores[1];
-  let from = -1, dir = -1;
-  for (let d = 0; d < 4; d++) {
-    const j = neighbor(11, core, d);
-    if (j >= 0 && state.terrain[j] !== WALL) { from = j; dir = (d + 2) % 4; break; }
+  check(makeRules({ maxTicks: 1234 }).maxTicks === 1234, 'a tick limit inside the range is kept');
+  check(makeRules({ maxTicks: 10 }).maxTicks === MIN_TICKS, `tick limits below ${MIN_TICKS} are raised`);
+  check(makeRules({ maxTicks: 999999 }).maxTicks === MAX_TICKS, `tick limits above ${MAX_TICKS} are capped`);
+  check(makeRules({ maxTicks: 'abc' }).maxTicks === RULES.maxTicks, 'a nonsense tick limit falls back to the default');
+  check(makeRules({ size: 999 }).size === RULES.size, 'an unsupported size falls back to the default');
+  const state = createMatch(seedFor(9), { size: 15, maxTicks: MIN_TICKS });
+  while (!state.result) step(state, null, null);
+  check(state.tick === MIN_TICKS, `an idle match ends exactly at the tick limit, got ${state.tick}`);
+}
+
+// 7. Seeking backwards through a replay rebuilds the same board as playing forwards.
+{
+  const { replay } = playMatch(bots[0], bots[3], seedFor(4), { rules: { size: 15, maxTicks: 400 } });
+  const forwards = buildReplay(replay, 16);
+  const backwards = buildReplay(replay, 16);
+  let same = true;
+  const snapshots = [];
+  for (let k = 0; k <= forwards.length; k++) snapshots.push(Array.from(forwards.frameAt(k).owner));
+  for (let k = backwards.length; k >= 0; k--) {
+    const frame = backwards.frameAt(k);
+    if (frame.tick !== k || !snapshots[k].every((v, i) => v === frame.owner[i])) same = false;
   }
-  state.owner[from] = 0;
-  state.mass[from] = 21; // sends 20 against a 10-mass core, which defends as 20
-  state.mass[core] = 10;
-  step(state, { from, dir }, null);
-  check(state.owner[core] === 1 && !state.result, 'an attack equal to double the core should fail');
-  state.mass[from] = 23; // sends 22, more than double
-  state.mass[core] = 10;
-  step(state, { from, dir }, null);
-  check(state.result && state.result.winner === 0, 'an attack over double the core should capture it');
+  check(same, 'rewinding a replay gives the same boards as playing it forwards');
 }
 
 console.log(failures ? `\n${failures} failure(s)` : 'all tests passed');

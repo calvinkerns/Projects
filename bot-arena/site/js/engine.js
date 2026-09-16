@@ -3,22 +3,24 @@
 // the Node tools.
 
 export const PLAIN = 0, WALL = 1, NEUTRAL = -1;
-export const SIZES = [11, 15, 21];
+export const SIZES = [15, 21, 31, 41];
+export const MIN_TICKS = 400;
+export const MAX_TICKS = 20000;
 
 export const RULES = Object.freeze({
-  size: 15,
+  size: 21,
+  maxTicks: 800,
   wallPercent: 12,
   coreStartMass: 5,
   growEvery: 10,
-  ticksPerSize: 20,
-  coreDefense: 2,
 });
 
-// Fills in defaults, keeps the size to a supported value, and derives the tick limit.
+// Fills in defaults and keeps the size and tick limit inside what's supported.
 export function makeRules(overrides = {}) {
   const rules = { ...RULES, ...overrides };
   if (!SIZES.includes(rules.size)) rules.size = RULES.size;
-  rules.maxTicks = rules.size * rules.ticksPerSize;
+  const ticks = Math.round(Number(rules.maxTicks));
+  rules.maxTicks = Number.isFinite(ticks) ? Math.min(MAX_TICKS, Math.max(MIN_TICKS, ticks)) : RULES.maxTicks;
   return Object.freeze(rules);
 }
 
@@ -154,17 +156,12 @@ export function step(state, move0, move1) {
     const amount = Math.abs(net);
     if (owner[t] === p) {
       mass[t] += amount;
+    } else if (amount > mass[t]) {
+      if (t === cores[0] || t === cores[1]) coreLost[owner[t]] = true;
+      owner[t] = p;
+      mass[t] = amount - mass[t];
     } else {
-      // Cores are fortified: every point of core mass counts coreDefense times.
-      const isCore = t === cores[0] || t === cores[1];
-      const multiplier = isCore ? rules.coreDefense : 1;
-      if (amount > mass[t] * multiplier) {
-        if (isCore) coreLost[owner[t]] = true;
-        owner[t] = p;
-        mass[t] = amount - mass[t] * multiplier;
-      } else {
-        mass[t] -= Math.floor(amount / multiplier);
-      }
+      mass[t] -= amount;
     }
   }
 
@@ -237,23 +234,57 @@ export function recordTick(replay, executed) {
   replay.moves.push(executed.map(encodeMove));
 }
 
-// Rebuild every frame of a replay. frames[k].moves are the moves that produced frame k.
-export function replayFrames(replay) {
+const KEYFRAME_EVERY = 64;
+
+// Prepare a replay for viewing. Rather than keeping every frame (a 20000-tick
+// match on a big board would be hundreds of megabytes), it keeps a snapshot
+// every few dozen ticks and replays forward from the nearest one on demand.
+export function buildReplay(replay, keyframeEvery = KEYFRAME_EVERY) {
+  const moves = (replay.moves || []).map((pair) => [decodeMove(pair?.[0]), decodeMove(pair?.[1])]);
   const state = createMatch(replay.seed, replay.rules);
-  const snap = (moves) => ({ tick: state.tick, owner: state.owner.slice(), mass: state.mass.slice(), moves });
-  const frames = [snap([null, null])];
-  for (const [c0, c1] of replay.moves) {
-    frames.push(snap(step(state, decodeMove(c0), decodeMove(c1))));
+  const snapshot = () => ({ tick: state.tick, owner: state.owner.slice(), mass: state.mass.slice(), result: state.result });
+  const keyframes = [snapshot()];
+  const amounts = [[0, 0]]; // how much mass each move carried, for drawing arrows
+  let length = 0;
+
+  for (let k = 0; k < moves.length; k++) {
+    const [m0, m1] = moves[k];
+    amounts.push([
+      m0 && state.owner[m0.from] === 0 ? state.mass[m0.from] - 1 : 0,
+      m1 && state.owner[m1.from] === 1 ? state.mass[m1.from] - 1 : 0,
+    ]);
+    step(state, m0, m1);
+    length = k + 1;
+    if (length % keyframeEvery === 0) keyframes.push(snapshot());
     if (state.result) break;
   }
+
+  const cursor = createMatch(replay.seed, replay.rules);
+  const restore = (snap) => {
+    cursor.tick = snap.tick;
+    cursor.owner.set(snap.owner);
+    cursor.mass.set(snap.mass);
+    cursor.result = snap.result;
+  };
+
   return {
     rules: state.rules,
     size: state.size,
     terrain: state.terrain,
     cores: state.cores,
-    names: replay.names,
-    frames,
+    names: replay.names || ['bot 0', 'bot 1'],
     // A forfeit can't be derived from moves, so fall back to the recorded result.
-    result: state.result || replay.result,
+    result: state.result || replay.result || null,
+    length,
+    // The moves that produced frame k, and how much mass each carried.
+    moveAt: (k) => (k > 0 && k <= length ? { moves: moves[k - 1], amounts: amounts[k] } : null),
+    // The board at tick k. The arrays belong to the viewer's cursor: read them, don't keep them.
+    frameAt(k) {
+      k = Math.max(0, Math.min(length, Math.round(k) || 0));
+      const key = Math.min(keyframes.length - 1, Math.floor(k / keyframeEvery));
+      if (cursor.tick > k || cursor.tick < keyframes[key].tick) restore(keyframes[key]);
+      while (cursor.tick < k) step(cursor, moves[cursor.tick][0], moves[cursor.tick][1]);
+      return { tick: cursor.tick, owner: cursor.owner, mass: cursor.mass };
+    },
   };
 }

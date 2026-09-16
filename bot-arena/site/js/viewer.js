@@ -1,6 +1,6 @@
 // Replay viewer: canvas board, HUD, timeline and controls for one Surge replay.
 
-import { WALL, replayFrames } from './engine.js';
+import { WALL, buildReplay } from './engine.js';
 
 const RGB = [[255, 138, 61], [60, 200, 255]];
 const MASS_STEPS = [0, 3, 8, 20, 50, 120];
@@ -65,7 +65,7 @@ export function createViewer(container, { autoplay = false } = {}) {
   button('▶|', 'Step forward', () => { pause(); seek(frame + 1); });
   const speedSelect = el('select', 'sv-select', controls);
   speedSelect.setAttribute('aria-label', 'Playback speed');
-  for (const s of [0.5, 1, 2, 4]) el('option', null, speedSelect, `${s}×`).value = String(s);
+  for (const s of [0.5, 1, 2, 4, 8, 16]) el('option', null, speedSelect, `${s}×`).value = String(s);
   speedSelect.value = '1';
   speedSelect.addEventListener('change', () => setSpeed(Number(speedSelect.value)));
 
@@ -79,6 +79,13 @@ export function createViewer(container, { autoplay = false } = {}) {
   const listeners = { tick: [], end: [], load: [] };
   const emit = (event, value) => listeners[event].forEach((fn) => fn(value));
 
+  function render() {
+    if (!built) return;
+    const f = built.frameAt(frame);
+    updateHud(f);
+    draw(f);
+  }
+
   function resize() {
     const cssSize = Math.max(160, Math.floor(stage.clientWidth));
     const dpr = window.devicePixelRatio || 1;
@@ -86,15 +93,14 @@ export function createViewer(container, { autoplay = false } = {}) {
     canvas.height = Math.round(cssSize * dpr);
     canvas.style.width = `${cssSize}px`;
     canvas.style.height = `${cssSize}px`;
-    draw();
+    render();
   }
   const observer = new ResizeObserver(resize);
   observer.observe(stage);
 
-  function draw() {
+  function draw(f) {
     if (!built || !canvas.width) return;
     const { size, terrain, cores } = built;
-    const f = built.frames[frame];
     const t = canvas.width / size;
     const gap = Math.max(1, t * 0.06);
     ctx.fillStyle = '#0a0d13';
@@ -138,12 +144,13 @@ export function createViewer(container, { autoplay = false } = {}) {
     for (let back = 0; back < ARROW_FADE.length; back++) {
       const k = frame - back;
       if (k < 1) break;
-      const prev = built.frames[k - 1];
-      built.frames[k].moves.forEach((move, p) => {
+      const played = built.moveAt(k);
+      if (!played) break;
+      played.moves.forEach((move, p) => {
         if (!move) return;
         const [r, g, b] = RGB[p];
         const [dx, dy] = STEP_XY[move.dir];
-        const amount = prev.mass[move.from] - 1;
+        const amount = played.amounts[p];
         const x0 = (move.from % size + 0.5) * t, y0 = (Math.floor(move.from / size) + 0.5) * t;
         const x1 = x0 + dx * t * 0.72, y1 = y0 + dy * t * 0.72;
         const width = t * (0.06 + 0.05 * Math.log10(1 + amount));
@@ -167,8 +174,7 @@ export function createViewer(container, { autoplay = false } = {}) {
     ctx.globalAlpha = 1;
   }
 
-  function updateHud() {
-    const f = built.frames[frame];
+  function updateHud(f) {
     const tiles = [0, 0], mass = [0, 0];
     let open = 0;
     for (let i = 0; i < f.owner.length; i++) {
@@ -184,7 +190,7 @@ export function createViewer(container, { autoplay = false } = {}) {
     sides.forEach((s, p) => { s.stats.textContent = `${tiles[p]} tiles · ${shortMass(mass[p])} mass`; });
     tickLabel.textContent = `tick ${f.tick} / ${built.rules.maxTicks}`;
     scrub.value = String(frame);
-    banner.hidden = !(built.result && frame === built.frames.length - 1);
+    banner.hidden = !(built.result && frame === built.length);
   }
 
   function loop(now) {
@@ -197,7 +203,7 @@ export function createViewer(container, { autoplay = false } = {}) {
       pendingTicks -= steps;
       seek(frame + steps);
     }
-    if (frame >= built.frames.length - 1) {
+    if (frame >= built.length) {
       pause();
       emit('end', built.result);
       return;
@@ -207,7 +213,7 @@ export function createViewer(container, { autoplay = false } = {}) {
 
   function play() {
     if (!built) return;
-    if (frame >= built.frames.length - 1) seek(0);
+    if (frame >= built.length) seek(0);
     playing = true;
     lastTime = 0;
     pendingTicks = 0;
@@ -228,10 +234,9 @@ export function createViewer(container, { autoplay = false } = {}) {
 
   function seek(k) {
     if (!built) return;
-    frame = Math.max(0, Math.min(built.frames.length - 1, Math.round(k) || 0));
-    updateHud();
-    draw();
-    emit('tick', built.frames[frame].tick);
+    frame = Math.max(0, Math.min(built.length, Math.round(k) || 0));
+    render();
+    emit('tick', frame);
   }
 
   function setSpeed(multiplier) {
@@ -241,14 +246,14 @@ export function createViewer(container, { autoplay = false } = {}) {
 
   function load(replay) {
     pause();
-    built = replayFrames(replay);
+    built = buildReplay(replay);
     built.names = (built.names || []).map((n) => String(n ?? 'bot').slice(0, 40));
     sides.forEach((s, p) => { s.name.textContent = built.names[p]; });
     const r = built.result;
     banner.className = `sv-banner${r && r.winner >= 0 ? ` sv-win-p${r.winner}` : ''}`;
     banner.textContent = !r ? '' : r.winner === -1 ? `Draw: ${r.reason}` : `${built.names[r.winner]} wins: ${r.reason} at tick ${r.tick}`;
     banner.hidden = true;
-    scrub.max = String(built.frames.length - 1);
+    scrub.max = String(built.length);
     seek(0);
     emit('load', built);
     if (autoplay) play();

@@ -5,11 +5,11 @@ function bot(game) {
   if (stacks.length === 0) return;
 
   // Moving out of my core leaves it with 1. An enemy stack d steps away arrives
-  // with about (mass - d), by which time my core has regrown to (1 + d) and
-  // defends at double strength. Only empty the core if every stack would lose.
+  // with about (mass - d), by which time my core has regrown to (1 + d).
+  // Only empty the core if every enemy stack would still lose.
   const coreSafeToEmpty = game.enemyTiles.every((t) => {
     const d = t.distanceTo(myCore);
-    return t.mass - d < 2 * (1 + d);
+    return t.mass - d + 8 < 1 + d; // keep a cushion: their stack can still grow
   });
   const usable = stacks.filter((t) => t !== myCore || coreSafeToEmpty);
   if (usable.length === 0) return; // keep the core home and let it grow
@@ -18,8 +18,7 @@ function bot(game) {
   let best = null;
   for (const stack of usable) {
     for (const t of stack.neighbors) {
-      const defense = t.core ? t.mass * 2 : t.mass;
-      if (t.enemy && stack.mass - 1 > defense && (!best || t.mass > best.target.mass)) best = { stack, target: t };
+      if (t.enemy && stack.mass - 1 > t.mass && (!best || t.mass > best.target.mass)) best = { stack, target: t };
     }
   }
   if (best) return best.stack.moveTo(best.target);
@@ -27,7 +26,7 @@ function bot(game) {
   // 2. Attack the enemy core if my biggest stack will still win when it arrives.
   const biggest = usable[0];
   const distance = biggest.distanceTo(enemyCore);
-  if (biggest.mass - distance > 2 * (enemyCore.mass + distance) + 3) {
+  if (biggest.mass - distance > enemyCore.mass + distance + 3) {
     return biggest.moveTo(biggest.stepToward(enemyCore));
   }
 

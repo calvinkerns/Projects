@@ -1,6 +1,6 @@
 // Surge app: editor, matches, tournament, and share links.
 
-import { RULES } from './engine.js';
+import { RULES, MIN_TICKS, MAX_TICKS } from './engine.js';
 import { createViewer } from './viewer.js';
 import { runMatch, TICK_LIMIT_MS } from './match.js';
 
@@ -62,6 +62,14 @@ nameInput.addEventListener('input', () => store.set('surge-lite.name', nameInput
 const botName = () => nameInput.value.trim().slice(0, 24) || 'My bot';
 const arenaSize = () => Number($('size').value);
 $('size').addEventListener('change', () => store.set('surge-lite.size', $('size').value));
+
+const tickLimit = () => {
+  const typed = Math.round(Number($('ticks').value));
+  const clamped = Number.isFinite(typed) ? Math.min(MAX_TICKS, Math.max(MIN_TICKS, typed)) : RULES.maxTicks;
+  $('ticks').value = String(clamped);
+  return clamped;
+};
+$('ticks').addEventListener('change', () => store.set('surge-lite.ticks', String(tickLimit())));
 
 $('template').addEventListener('change', () => {
   const select = $('template');
@@ -153,7 +161,7 @@ async function fight() {
       a: { name: botName(), source: code.value },
       b: { name: opponent.name, source: opponent.source },
       seed: Number($('seed').value) >>> 0,
-      rules: { size: arenaSize() },
+      rules: { size: arenaSize(), maxTicks: tickLimit() },
       signal: controller.signal,
       onProgress: (tick, max) => status(`Fighting ${opponent.name}… tick ${tick} / ${max}`),
     });
@@ -200,7 +208,7 @@ async function tournament() {
   box.hidden = false;
   box.replaceChildren();
   const heading = document.createElement('h2');
-  heading.textContent = `Tournament: ${me.name} vs every bot, ${TOURNAMENT_SEEDS} maps each, ${arenaSize()}×${arenaSize()}`;
+  heading.textContent = `Tournament: ${me.name} vs every bot, ${TOURNAMENT_SEEDS} maps each, ${arenaSize()}×${arenaSize()}, ${tickLimit()} ticks`;
   const progress = document.createElement('div');
   progress.className = 'progress';
   const bar = document.createElement('div');
@@ -238,7 +246,7 @@ async function tournament() {
         if (controller.signal.aborted) throw new DOMException('Cancelled', 'AbortError');
         const swap = k % 2 === 1;
         const them = { name: row.opponent.name, source: row.opponent.source };
-        const { replay } = await runMatch({ a: swap ? them : me, b: swap ? me : them, seed: 1000 + k * 7919, rules: { size: arenaSize() }, signal: controller.signal });
+        const { replay } = await runMatch({ a: swap ? them : me, b: swap ? me : them, seed: 1000 + k * 7919, rules: { size: arenaSize(), maxTicks: tickLimit() }, signal: controller.signal });
         const mySide = swap ? 1 : 0;
         const { winner } = replay.result;
         if (winner === -1) { row.d++; tally.d++; }
@@ -356,7 +364,9 @@ window.addEventListener('hashchange', () => location.reload());
 async function start() {
   nameInput.value = store.get('surge-lite.name') || 'My bot';
   const savedSize = store.get('surge-lite.size');
-  if (['11', '15', '21'].includes(savedSize)) $('size').value = savedSize;
+  if ([...$('size').options].some((o) => o.value === savedSize)) $('size').value = savedSize;
+  $('ticks').value = store.get('surge-lite.ticks') || String(RULES.maxTicks);
+  tickLimit();
   $('seed').value = String(Math.floor(Math.random() * 1e6));
   const demo = fetch('replays/demo.json').then((r) => r.json());
 
