@@ -1,48 +1,65 @@
-import React, {useRef} from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './contact.css';
-import InstagramIMG from "../../assets/instagram.png";
-import LinkedInIMG from "../../assets/linkedin.png";
-import emailjs from '@emailjs/browser';
 
 const Contact = () => {
-  const form = useRef();
-  const sendEmail = (e) => {
-    e.preventDefault();
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef(null);
 
-    emailjs
-      .sendForm('service_bhjqr1r', 'template_tsax3ms', form.current, {
-        publicKey: 'o219sUJAsR-hOm8mS',
-      })
-      .then(
-        () => {
-          console.log('SUCCESS!');
-          alert('Email Sent!')
-          e.target.reset();
-        },
-        (error) => {
-          console.log('FAILED...', error.text);
-        },
-      );
-  };
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      {
+        threshold: 0.2,
+        rootMargin: '0px'
+      }
+    );
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+
+    return () => {
+      if (sectionRef.current) {
+        observer.unobserve(sectionRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <section id="contactPage">
-      <div id="contact">
-        <h1 className="contactPageTitle">Contact Me</h1>
-        <span className="contactDesc">
-          Please fill out the form below to discuss any work opportunities or just to get in touch.
-        </span>
-        <form className="contactForm" ref={form} onSubmit={sendEmail}>
-          <input type="text" className="name" placeholder='Your name' name='from_name' />
-          <input type="email" className="email" placeholder='Your email' name='your_email'/>
-          <textarea className="msg" name="message" rows="5" placeholder="Your message"></textarea>
-          <button type="submit" value='Send' className="submitBtn">Submit</button>
-          <div className='links'>
-            <img src={InstagramIMG} alt="Instagram" className="link" />
-            <img src={LinkedInIMG} alt="LinkedIn" className="link" />
+    <>
+      <section id="contactPage" ref={sectionRef} className={isVisible ? 'visible' : ''}>
+        <div id="contact">
+          <h1 className="contactPageTitle">Contact Me</h1>
+          <span className="contactDesc">
+            Feel free to reach out to discuss any work opportunities or just to get in touch.
+          </span>
+          <div className="contactInfo">
+            <div className="contactItem">
+              <div className="contactLabel">Email</div>
+              <a href="calvinkerns009@gmail.com" className="contactValue">
+                calvinkerns009@gmail.com
+              </a>
+            </div>
+            <div className="contactItem">
+              <div className="contactLabel">Phone</div>
+              <a href="tel:+2065141454" className="contactValue">
+                (206) 514-1454
+              </a>
+            </div>
+            <div className="contactItem">
+              <div className="contactLabel">LinkedIn</div>
+              <a href="https://www.linkedin.com/in/kernsc" target="_blank" rel="noopener noreferrer" className="contactValue">
+                www.linkedin.com/in/kernsc
+              </a>
+            </div>
           </div>
-        </form>
-      </div>
-    </section>
+        </div>
+      </section>
+    </>
   );
 }
 
