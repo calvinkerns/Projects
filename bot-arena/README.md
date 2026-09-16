@@ -1,6 +1,6 @@
 # Surge
 
-A tiny bot arena that runs entirely in your browser. Write a JavaScript bot, fight the built-in bots on an arena from 15×15 to 41×41 with a tick limit you choose, and watch the replay.
+A tiny bot arena that runs entirely in your browser. Write a JavaScript bot, fight the built-in bots on an arena from 15×15 to 31×31 with a tick limit you choose, and watch the replay.
 
 ## Run it
 

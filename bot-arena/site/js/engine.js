@@ -3,7 +3,7 @@
 // the Node tools.
 
 export const PLAIN = 0, WALL = 1, NEUTRAL = -1;
-export const SIZES = [15, 21, 31, 41];
+export const SIZES = [15, 21, 31];
 export const MIN_TICKS = 400;
 export const MAX_TICKS = 20000;
 
