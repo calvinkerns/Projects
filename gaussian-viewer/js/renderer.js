@@ -21,6 +21,13 @@ export class Renderer {
             debugMode: this.gl.getUniformLocation(this.program, 'debugMode'),
         };
 
+        // Check required uniforms once instead of every frame
+        for (const [name, location] of Object.entries(this.uniforms)) {
+            if (location === null) {
+                console.error(`Missing uniform: ${name}`);
+            }
+        }
+
         // Setup GL state and buffers
         this.setupGL();
         
@@ -119,13 +126,7 @@ export class Renderer {
         // Bind program and verify
         gl.useProgram(this.program);
         
-        // Check all required uniforms
         const uniforms = this.uniforms;
-        for (const [name, location] of Object.entries(uniforms)) {
-            if (location === null) {
-                console.error(`Missing uniform: ${name}`);
-            }
-        }
     
         // Set viewport and clear
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -147,16 +148,8 @@ export class Renderer {
         // Log rendering attempt
         // console.log(`Attempting to render ${this.splatCount} splats`);
     
-        // Draw with error checking
-        try {
-            gl.drawArraysInstanced(gl.TRIANGLE_FAN, 0, 4, this.splatCount);
-            const error = gl.getError();
-            if (error !== gl.NO_ERROR) {
-                console.error('WebGL error:', error);
-            }
-        } catch (e) {
-            console.error('Render error:', e);
-        }
+        // No per-frame gl.getError(): it forces a CPU/GPU sync that stalls every frame
+        gl.drawArraysInstanced(gl.TRIANGLE_FAN, 0, 4, this.splatCount);
     }
     
     // Add this method to check WebGL state
