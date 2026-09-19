@@ -1,4 +1,4 @@
-import { vec3 } from 'gl-matrix';
+const { vec3 } = glMatrix;
 
 export class Controls { 
     constructor(camera) {
@@ -28,33 +28,44 @@ export class Controls {
     }
 
     updateMovement() {
-        if (this.keys.size === 0) return;
-        
+        let moved = false;
+        const moveSpeed = 0.75; // Change this value to control movement speed
+
         if (this.keys.has('w')) {
             vec3.scaleAndAdd(this.camera.position, this.camera.position, 
-                this.camera.forward, this.speed);
+                this.camera.forward, moveSpeed);
+            moved = true;
         }
         if (this.keys.has('s')) {
             vec3.scaleAndAdd(this.camera.position, this.camera.position, 
-                this.camera.forward, -this.speed);
+                this.camera.forward, -moveSpeed);
+            moved = true;
         }
         if (this.keys.has('a')) {
             vec3.scaleAndAdd(this.camera.position, this.camera.position, 
-                this.camera.right, -this.speed);
+                this.camera.right, -moveSpeed);
+            moved = true;
         }
         if (this.keys.has('d')) {
             vec3.scaleAndAdd(this.camera.position, this.camera.position, 
-                this.camera.right, this.speed);
+                this.camera.right, moveSpeed);
+            moved = true;
         }
         if (this.keys.has(' ')) {
             vec3.scaleAndAdd(this.camera.position, this.camera.position, 
-                [0, 1, 0], this.speed);
+                [0, 1, 0], moveSpeed);
+            moved = true;
         }
         if (this.keys.has('shift')) {
             vec3.scaleAndAdd(this.camera.position, this.camera.position, 
-                [0, 1, 0], -this.speed);
+                [0, 1, 0], -moveSpeed);
+            moved = true;
         }
-        
-        this.camera.updateMatrices();
+
+        if (moved) {
+            this.camera.updateMatrices();
+        }
+
+        return moved;
     }
 }

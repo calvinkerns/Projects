@@ -17,17 +17,13 @@ export class DiagnosticRenderer {
         debugSelect.innerHTML = `
             <option value="normal">Normal Rendering</option>
             <option value="falloff">Gaussian Falloff</option>
-            <option value="position">Position Debug</option>
         `;
         
         debugSelect.addEventListener('change', (e) => {
             this.debugMode = e.target.value;
             switch(this.debugMode) {
                 case 'falloff':
-                    this.renderer.setDebugMode(2); 1
-                    break;
-                case 'position':
-                    this.renderer.setDebugMode(3);
+                    this.renderer.setDebugMode(2);
                     break;
                 default:
                     this.renderer.setDebugMode(0);

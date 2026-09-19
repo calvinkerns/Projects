@@ -18,7 +18,7 @@ sudo chmod -R 755 /var/www/konnorkooi.com/gaussian-viewer/
 ssh konnor@76.135.164.17 "rm -rf /var/www/konnorkooi.com/gaussian-viewer/*"
 
 # Copy new files
-scp -r gaussian-viewer/* konnor@:/var/www/konnorkooi.com/gaussian-viewer/
+scp -r gaussian-viewer/* konnor@76.135.164.17:/var/www/konnorkooi.com/gaussian-viewer/
 ```
 
 4. Check Apache status:
@@ -26,22 +26,4 @@ scp -r gaussian-viewer/* konnor@:/var/www/konnorkooi.com/gaussian-viewer/
 sudo systemctl status apache2
 ```
 
-5. If needed, restart Apache:
-```bash
-1```
-
-## Troubleshooting
-- If you get permission denied errors, rerun the ownership commands from step 2
-- If the website isn't updating, try clearing your browser cache or use incognito mode
-- Check Apache logs if something isn't working:
-```bash
-sudo tail -f /var/log/apache2/error.log
-```
-
-## Important Notes
-- Always test locally before deploying
-- Make sure all files are copied correctly
-- The website is served at: konnorkooi.com/gaussian-viewer/
-- Keep these commands handy for future deployments
-
-Remember: If you get stuck, you can always reach out to IT for help!
+5. If needed, restart apache
