@@ -1,4 +1,4 @@
-import { vec3, mat4 } from 'gl-matrix';
+const { vec3, mat4 } = glMatrix;
 
 export class Camera {
     constructor() {
@@ -11,15 +11,20 @@ export class Camera {
         this.viewMatrix = mat4.create();
         this.projMatrix = mat4.create();
         
-        // Adjusted focal length parameters for better projection
-        this.fx = 800; // Increased from 800
-        this.fy = 800; // Increased from 800
+        // Focal length in pixels. Derived from fov + canvas size in
+        // updateMatrices() -- see the note there.
+        this.fx = 600;
+        this.fy = 600;
         
-        // Adjusted perspective parameters
-        this.fov = 45 * Math.PI / 180; // Narrower FOV for better detail
-        this.near = 0.05;  // Closer near plane
-        this.far = 2000.0; // Extended far plane
+       
+        this.fov = 60 * Math.PI / 180; 
+        this.near = 0.01;  
+        this.far = 5000.0; 
         
+        // Cached once. updateMatrices() runs on every mousemove (up to ~1kHz on a
+        // high-polling mouse), and it used to do a getElementById each time.
+        this.canvas = document.getElementById('glcanvas');
+
         this.updateMatrices();
     }
     
@@ -30,9 +35,18 @@ export class Camera {
         vec3.add(lookingPoint, this.position, this.forward);
         mat4.lookAt(this.viewMatrix, this.position, lookingPoint, this.up);
         
-        const canvas = document.getElementById('glcanvas');
+        const canvas = this.canvas;
         const aspectRatio = canvas.width / canvas.height;
         mat4.perspective(this.projMatrix, this.fov, aspectRatio, this.near, this.far);
+
+        // The shader's EWA Jacobian must use the SAME focal length as the
+        // projection matrix above, or the projected covariance comes out at the
+        // wrong scale. These were pinned at 600, which is ~1.56x too small at
+        // 1080p and drifted further every time the window was resized.
+        // For gl-matrix's perspective() the pixel focal length is the same on
+        // both axes, since the aspect correction is already in the matrix.
+        this.fy = (canvas.height * 0.5) / Math.tan(this.fov * 0.5);
+        this.fx = this.fy;
     }
 
     updateVectors() {
@@ -51,12 +65,6 @@ export class Camera {
         vec3.cross(this.up, this.right, this.forward);
         vec3.normalize(this.up, this.up);
         
-        // console.debug('Vectors updated:', {
-        //     forward: [...this.forward],
-        //     right: [...this.right],
-        //     up: [...this.up],
-        //     pitch: this.pitch,
-        //     yaw: this.yaw
-        // });
+
     }
 }

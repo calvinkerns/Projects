@@ -1,3 +1,5 @@
+import { computeCovariance } from './covariance.js';
+
 export class PLYParser {
 
     static sh_to_rgb(dc0, dc1, dc2) {
@@ -39,7 +41,6 @@ export class PLYParser {
                     name: tokens[2]
                 });
                 header.propertyIndices[tokens[2]] = propertyIndex++;
-                console.log(`Found property: ${tokens[2]} at index ${propertyIndex-1}`);
             }
         }
 
@@ -78,7 +79,6 @@ export class PLYParser {
                 throw new Error('Could not find end of header');
             }
 
-            console.log('Header found:', headerText);
             const header = this.parseHeader(headerText);
 
             // Calculate expected data size
@@ -86,30 +86,27 @@ export class PLYParser {
             const actualBytes = buffer.byteLength - headerEnd;
             console.log(`Expected ${expectedBytes} bytes of data, got ${actualBytes} bytes`);
 
-            // Read vertex data
-            const dataView = new DataView(buffer, headerEnd);
-            const floatArray = new Float32Array(header.vertexCount * header.properties.length);
-            
-            // Read and verify first vertex
-            console.log('Reading first vertex data:');
-            for (let j = 0; j < header.properties.length; j++) {
-                const value = dataView.getFloat32(j * 4, true); 
-                floatArray[j] = value;
-                console.log(`${header.properties[j].name}: ${value}`);
+            // Read vertex data. The format is binary_little_endian float32 and
+            // every mainstream platform is little-endian, so the payload can be
+            // reinterpreted wholesale instead of pulled out one getFloat32 at a
+            // time (that was 5.8M DataView calls for the van Gogh scene).
+            const floatCount = header.vertexCount * header.properties.length;
+            const payloadBytes = buffer.byteLength - headerEnd;
+            if (payloadBytes < floatCount * 4) {
+                throw new Error(
+                    `PLY data truncated: need ${floatCount * 4} bytes, have ${payloadBytes}`
+                );
             }
 
-            // Read all vertices
-            let offset = 0;
-            for (let i = 0; i < header.vertexCount; i++) {
-                for (let j = 0; j < header.properties.length; j++) {
-                    try {
-                        floatArray[offset] = dataView.getFloat32((i * header.properties.length + j) * 4, true);
-                    } catch (e) {
-                        console.error(`Error reading vertex ${i} property ${j}:`, e);
-                        throw e;
-                    }
-                    offset++;
-                }
+            let floatArray;
+            if (headerEnd % 4 === 0) {
+                // Already aligned: view the payload directly, no copy at all.
+                floatArray = new Float32Array(buffer, headerEnd, floatCount);
+            } else {
+                // Float32Array needs a 4-byte-aligned offset; slice to realign.
+                floatArray = new Float32Array(
+                    buffer.slice(headerEnd, headerEnd + floatCount * 4)
+                );
             }
 
             console.log(`Successfully read ${header.vertexCount} vertices`);
@@ -178,7 +175,12 @@ export class PLYParser {
             ];
 
             // Scale values with increased base size
-            const scaleMultiplier = 6.0; //try increasing this if the gaussians look small
+            // Artistic inflation of the trained scales. Reference 3DGS uses 1.0;
+            // this was raised to 8.0 to compensate for splats collapsing under the
+            // old (broken) covariance projection. Now that the projection is
+            // correct this is the single knob for overall splat size -- lower it
+            // if the scene looks too blobby.
+            const scaleMultiplier = 8.0;
             const scales = [
                 Math.exp(floatArray[i + indices.scale_0]) * scaleMultiplier,
                 Math.exp(floatArray[i + indices.scale_1]) * scaleMultiplier,
@@ -201,7 +203,7 @@ export class PLYParser {
             }
 
             // Compute covariance with adjusted scales
-            const covariance = this.computeCovariance(scales, rotation);
+            const covariance = computeCovariance(scales, rotation);
 
             // Convert colors using SH coefficients
             const color = this.sh_to_rgb(
@@ -212,7 +214,7 @@ export class PLYParser {
 
             // Adjust opacity for better coverage
             const rawOpacity = floatArray[i + indices.opacity];
-            const opacity = Math.min(1.0, Math.exp(rawOpacity) * 1.2); // Increased opacity
+            const opacity = Math.min(1.0, Math.exp(rawOpacity) * 1.0); // can change the opatiy here if needed
 
             // Only add splat if opacity is significant
             if (opacity > 0.001) {
@@ -227,40 +229,5 @@ export class PLYParser {
 
         return splats;
     }
-    static computeCovariance(scale, rotation) {
-        const [qx, qy, qz, qw] = rotation;
-        
-        // Compute rotation matrix
-        const R = [
-            1.0 - 2.0 * (qy * qy + qz * qz),
-            2.0 * (qx * qy + qz * qw),
-            2.0 * (qx * qz - qy * qw),
-
-            2.0 * (qx * qy - qz * qw),
-            1.0 - 2.0 * (qx * qx + qz * qz),
-            2.0 * (qy * qz + qx * qw),
-
-            2.0 * (qx * qz + qy * qw),
-            2.0 * (qy * qz - qx * qw),
-            1.0 - 2.0 * (qx * qx + qy * qy)
-        ];
-
-        // Ensure minimum scale values
-        // const minScale = 0.001;
-        // const S = scale.map(s => Math.max(s, minScale));
-
-        const S = scale;
-
-        // Apply scaling to rotation matrix
-        const M = R.map((k, i) => k * S[Math.floor(i / 3)]);
-
-        // Compute covariance matrix elements with overlap factor
-        const overlapFactor = 1.0; // Increase for more overlap between Gaussians
-        return [
-            (M[0] * M[0] + M[3] * M[3] + M[6] * M[6]) * overlapFactor,
-            M[0] * M[1] + M[3] * M[4] + M[6] * M[7],
-            M[1] * M[1] + M[4] * M[4] + M[7] * M[7]
-        ];
-    }
-
+    
 }

@@ -1,4 +1,5 @@
-import { vec3 } from 'gl-matrix';
+const { vec3 } = glMatrix;
+import { computeCovariance } from './covariance.js';
 
 export class SplatGenerator {
     constructor(renderer, camera) {
@@ -6,42 +7,6 @@ export class SplatGenerator {
         this.camera = camera;
         this.splatCount = 0;
         this.splats = [];  
-    }
-
-    static floatToHalf(float) {
-        var floatView = new Float32Array(1);
-        var int32View = new Int32Array(floatView.buffer);
-        
-        floatView[0] = float;
-        var f = int32View[0];
-        
-        var sign = (f >> 31) & 0x0001;
-        var exp = (f >> 23) & 0x00ff;
-        var frac = f & 0x007fffff;
-        
-        var newExp;
-        if (exp === 0) {
-            newExp = 0;
-        } else if (exp < 113) {
-            newExp = 0;
-            frac |= 0x00800000;
-            frac = frac >> (113 - exp);
-            if (frac & 0x01000000) {
-                newExp = 1;
-                frac = 0;
-            }
-        } else if (exp < 142) {
-            newExp = exp - 112;
-        } else {
-            newExp = 31;
-            frac = 0;
-        }
-        
-        return (sign << 15) | (newExp << 10) | (frac >> 13);
-    }
-
-    static packHalf2x16(x, y) {
-        return (SplatGenerator.floatToHalf(x) | (SplatGenerator.floatToHalf(y) << 16)) >>> 0;
     }
 
     loadSpiralData() {
@@ -59,32 +24,72 @@ export class SplatGenerator {
             const hue = t * 0.1 % 1;
             const color = this.hslToRgb(hue, 0.8, 0.5);
             
-            const angle = t * 4;
-            const quat = this.angleAxisToQuaternion(angle, [0, 1, 0]);
-            const scale = 1.0 + (t * 0.002); // Increased base scale and growth rate
-            const covariance = this.computeCovariance(
-                [scale, scale * 0.7, scale * 0.5], // Increased relative scales
-                quat
-            );
+            // custom scaling
+            const baseScale = 0.15;
+            const scale = baseScale + (t * 0.0005); 
+            
+            const scaleVector = [
+                scale,
+                scale * 0.9,
+                scale * 0.9  
+            ];
+
+            // create the spiral by using a tangent
+            const tangentX = -Math.sin(t * 4);
+            const tangentZ = Math.cos(t * 4);
+            const tangent = vec3.normalize([], [tangentX, 0.2, tangentZ]);
+            const quat = this.vectorToQuaternion(tangent);
+            
+            const covariance = computeCovariance(scaleVector, quat);
 
             splats.push({
                 position: [xPos, yPos, zPos],
                 color: color,
                 covariance: covariance,
-                alpha: 0.8
+                alpha: 0.9 // Slightly increased opacity
             });
         }
 
-        const textureData = this.generateTextureData(splats);
-        this.renderer.updateTextureData(textureData.data, textureData.width, textureData.height);
-        
-        const indices = new Uint32Array(splats.length);
-        for (let i = 0; i < splats.length; i++) indices[i] = i;
-        this.renderer.updateIndexBuffer(indices);
 
-        this.splats = splats;  
+        this.splats = splats;
         this.splatCount = splats.length;
+        return splats;
     }
+
+    loadDualGaussianTest() {
+        const splats = [];
+        
+        // Create main gaussian (red)
+        const mainGaussian = {
+            position: [0, 0, 0],
+            color: [1.0, 0.2, 0.2],
+            covariance: computeCovariance(
+                [0.5, 1.0, 0.5],
+                [0, 0, 0, 1]
+            ),
+            alpha: 1.0
+        };
+        
+        // Create smaller gaussian (blue)
+        const smallerGaussian = {
+            position: [1, 0, 4],
+            color: [0.2, 0.2, 1.0],
+            covariance: computeCovariance(
+                [0.3, 0.6, 0.3],
+                [0, 0, 0, 1]
+            ),
+            alpha: 1.0
+        };
+    
+        splats.push(mainGaussian);
+        splats.push(smallerGaussian);
+    
+    
+        this.splats = splats;
+        this.splatCount = splats.length;
+        return splats;
+    }
+
 
     loadGridData(size = 25, spacing = 1.0) {
         const numSplats = size * size;
@@ -92,19 +97,21 @@ export class SplatGenerator {
     
         for (let x = 0; x < size; x++) {
             for (let z = 0; z < size; z++) {
-                const xPos = (x - size/2) * spacing;
-                const zPos = (z - size/2) * spacing;
+                const xPos = (x - size/2) * spacing * 2;
+                const zPos = (z - size/2) * spacing * 2;
                 const yPos = 0.2 * Math.sin(xPos) * Math.cos(zPos);
                 
-                // Calculate surface normal for orientation
-                const dx = 0.2 * Math.cos(xPos) * Math.cos(zPos);
-                const dz = -0.2 * Math.sin(xPos) * Math.sin(zPos);
-                const normal = vec3.normalize([], [dx, 1, dz]);
-                
+                // upward-facing normal
+                const normal = [0, 1, 0];
                 const quat = this.normalToQuaternion(normal);
-                const scale = [2.0 * spacing, 0.5 * spacing, 1.0 * spacing];
                 
-                const covariance = this.computeCovariance(scale, quat);
+                const scale = [
+                    0.3 * spacing,  // narrow in X
+                    1.0 * spacing,  // tall in Y
+                    0.3 * spacing   // narrow in Z
+                ];
+                
+                const covariance = computeCovariance(scale, quat);
                 
                 splats.push({
                     position: [xPos, yPos, zPos],
@@ -114,54 +121,15 @@ export class SplatGenerator {
                         Math.abs(zPos/size)
                     ],
                     covariance: covariance,
-                    alpha: 1.0
+                    alpha: 0.9
                 });
             }
         }
 
-        const textureData = this.generateTextureData(splats);
-        this.renderer.updateTextureData(textureData.data, textureData.width, textureData.height);
         
-        const indices = new Uint32Array(splats.length);
-        for (let i = 0; i < splats.length; i++) indices[i] = i;
-        this.renderer.updateIndexBuffer(indices);
-        
-        this.splats = splats;  
+        this.splats = splats;
         this.splatCount = splats.length;
-    }
-
-    generateTextureData(splats) {
-        const texwidth = 1024 * 2;
-        const texheight = Math.ceil((2 * splats.length) / texwidth);
-        const texdata = new Uint32Array(texwidth * texheight * 4);
-        const texdata_f = new Float32Array(texdata.buffer);
-
-        for (let i = 0; i < splats.length; i++) {
-            const splat = splats[i];
-            
-            // Position data
-            texdata_f[8 * i + 0] = splat.position[0];
-            texdata_f[8 * i + 1] = splat.position[1];
-            texdata_f[8 * i + 2] = splat.position[2];
-
-            // Covariance data
-            texdata[8 * i + 4] = SplatGenerator.packHalf2x16(splat.covariance[0], splat.covariance[1]);
-            texdata[8 * i + 5] = SplatGenerator.packHalf2x16(splat.covariance[2], splat.covariance[3]);
-            texdata[8 * i + 6] = SplatGenerator.packHalf2x16(0, 0);  // padding
-
-            // Color and alpha
-            const r = Math.floor(splat.color[0] * 255);
-            const g = Math.floor(splat.color[1] * 255);
-            const b = Math.floor(splat.color[2] * 255);
-            const a = Math.floor(splat.alpha * 255);
-            texdata[8 * i + 7] = (a << 24) | (b << 16) | (g << 8) | r;
-        }
-
-        return {
-            data: texdata,
-            width: texwidth,
-            height: texheight
-        };
+        return splats;
     }
 
     hslToRgb(h, s, l) {
@@ -183,34 +151,23 @@ export class SplatGenerator {
         ];
     }
 
-    computeCovariance(scale, rotation) {
-        const [qx, qy, qz, qw] = rotation;
+    vectorToQuaternion(vector) {
+        const up = [0, 1, 0];
+        const dot = vector[0] * up[0] + vector[1] * up[1] + vector[2] * up[2];
         
-        // Create rotation matrix
-        const R = [
-            1.0 - 2.0 * (qy * qy + qz * qz),
-            2.0 * (qx * qy + qz * qw),
-            2.0 * (qx * qz - qy * qw),
-    
-            2.0 * (qx * qy - qz * qw),
-            1.0 - 2.0 * (qx * qx + qz * qz),
-            2.0 * (qy * qz + qx * qw),
-    
-            2.0 * (qx * qz + qy * qw),
-            2.0 * (qy * qz - qx * qw),
-            1.0 - 2.0 * (qx * qx + qy * qy)
-        ];
-    
-        // Scale matrix with original scales
-        const S = scale.map(s => Math.max(s, 0.0001)); // Prevent zero scales
-        const M = R.map((k, i) => k * S[Math.floor(i / 3)]);
-    
-        // Compute upper triangular part of covariance matrix
-        return [
-            M[0] * M[0] + M[3] * M[3] + M[6] * M[6],
-            M[0] * M[1] + M[3] * M[4] + M[6] * M[7],
-            M[1] * M[1] + M[4] * M[4] + M[7] * M[7]
-        ];
+        if (Math.abs(dot - 1) < 0.000001) {
+            return [0, 0, 0, 1];
+        }
+        
+        if (Math.abs(dot + 1) < 0.000001) {
+            return [1, 0, 0, 0];
+        }
+        
+        const rotationAxis = vec3.cross([], up, vector);
+        vec3.normalize(rotationAxis, rotationAxis);
+        const angle = Math.acos(dot);
+        
+        return this.angleAxisToQuaternion(angle, rotationAxis);
     }
 
     angleAxisToQuaternion(angle, axis) {
