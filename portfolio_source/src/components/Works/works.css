@@ -1,453 +1,206 @@
-#works {
-    box-sizing: border-box;
-    overflow: visible;
-    width: 100%;
-    max-width: 80rem;
-    margin: 3rem auto 0;
-    padding: 2rem;
-    min-height: 15rem;
-    position: relative;
-}
-
-#works .header {
-    opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
-}
-
-#works.visible .header {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-#works .projectCarousel {
-    opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 0.7s ease-out 0.2s, transform 0.7s ease-out 0.2s;
-}
-
-#works.visible .projectCarousel {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-#works .githubLINK {
-    opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 0.7s ease-out 0.4s, transform 0.7s ease-out 0.4s;
-}
-
-#works.visible .githubLINK {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.header {
-    font-size: 3.5rem;
-    font-weight: 700;
-    color: #fff;
-    text-align: center;
-    font-family: 'Courier New', monospace;
-    text-transform: uppercase;
-    letter-spacing: 0.4rem;
-    text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
-    margin-bottom: 3rem;
-}
-
-.projectCarousel {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2rem;
-    position: relative;
-}
-
-.navButton {
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(0, 255, 255, 0.5);
-    color: #00ffff;
-    font-size: 4rem;
-    width: 5rem;
-    height: 5rem;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-family: 'Courier New', monospace;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-}
-
-.navButton:hover {
-    background: rgba(0, 255, 255, 0.2);
-    border-color: rgba(0, 255, 255, 1);
-    transform: scale(1.1);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
-}
-
-.navButton:active {
-    transform: scale(0.95);
-}
-
-.projectCounter {
-    text-align: center;
-    font-size: 1.8rem;
-    color: rgba(255, 255, 255, 0.7);
-    font-family: 'Courier New', monospace;
-    margin-top: 2rem;
-    margin-bottom: 2rem;
-    letter-spacing: 0.2rem;
-}
-
 .projectList {
-    flex: 1;
-    max-width: 60rem;
-    min-height: 20rem;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(4rem, 9vw, 7rem);
 }
 
+/* Top-aligned rather than centred: centring let each row settle by its own
+   tallest column, so the images started at a different height on every row. */
 .project {
-    padding: 2rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-left: 3px solid rgba(0, 255, 255, 0.5);
-    border-radius: 0.5rem;
-    transition: all 0.3s ease;
-    animation: fadeInSlide 0.5s ease-out forwards;
-    display: flex;
-    flex-direction: row;
-    gap: 2rem;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+}
+
+/* Every other row swaps sides. Source order stays image-then-text so the
+   reading order is unchanged for screen readers and on mobile. The column
+   widths swap with it, so the image is the same size on every row. */
+.project.isFlipped { grid-template-columns: 1fr 1.3fr; }
+.project.isFlipped .projectMediaCol { order: 2; }
+.project.isFlipped .projectBody     { order: 1; }
+
+/* ---------- Media ---------- */
+/* The caption's space is reserved on every row, captioned or not, so the
+   images line up with each other instead of shifting up by a caption. */
+.projectMediaCol {
+    position: relative;
+    padding-bottom: 1.8rem;
 }
 
 .projectMedia {
-    flex-shrink: 0;
-    width: 24rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.6rem;
-}
-
-.mediaCaption {
-    font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.6);
-    letter-spacing: 0.1rem;
-    text-transform: uppercase;
-}
-
-.projectImageContainer {
-    flex-shrink: 0;
-    width: 100%;
-    height: 22rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-    border-radius: 0.5rem;
-    background: rgba(0, 0, 0, 0.3);
-}
-
-.projectImage {
-    width: 100%;
-    height: 100%;
-    border-radius: 0.5rem;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-}
-
-.projectImage:hover {
-    transform: scale(1.05);
-}
-
-.projectImageContainer {
     position: relative;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--bg-glow);
+    aspect-ratio: 4 / 3;
+    transition: border-color 0.35s var(--ease), transform 0.35s var(--ease);
 }
 
-.projectVideo {
+.projectMedia img {
     width: 100%;
     height: 100%;
-    border-radius: 0.5rem;
+    object-fit: cover;
+    object-position: top center;
+    transition: transform 0.55s var(--ease);
+}
+
+.projectMedia video {
+    display: block;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
     background: #000;
 }
+
+.project:hover .projectMedia {
+    border-color: var(--border-strong);
+    transform: translateY(-4px);
+}
+
+.project:hover .projectMedia img { transform: scale(1.035); }
 
 .playButton {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 5rem;
-    height: 5rem;
+    width: 4.25rem;
+    height: 4.25rem;
+    padding-left: 0.25rem;
+    display: grid;
+    place-items: center;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.6);
-    border: 2px solid rgba(0, 255, 255, 0.7);
-    color: #00ffff;
-    font-size: 2rem;
-    padding-left: 0.3rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+    font-size: 1.5rem;
+    color: var(--accent-text);
+    background: rgba(10, 12, 16, 0.72);
+    border: 1px solid var(--accent-line);
+    backdrop-filter: blur(6px);
+    transition: background-color 0.2s var(--ease), color 0.2s var(--ease),
+                transform 0.2s var(--ease);
 }
 
 .playButton:hover {
-    background: rgba(0, 255, 255, 0.2);
-    border-color: rgba(0, 255, 255, 1);
-    transform: translate(-50%, -50%) scale(1.1);
-    box-shadow: 0 0 25px rgba(0, 255, 255, 0.6);
+    background: var(--accent);
+    color: #14100A;
+    transform: translate(-50%, -50%) scale(1.06);
 }
 
-.projectContent {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+.mediaCaption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
 }
 
-@keyframes fadeInSlide {
-    from {
-        opacity: 0;
-        transform: scale(0.98);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-.project:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-left-color: rgba(0, 255, 255, 1);
-    box-shadow: 0 5px 20px rgba(0, 255, 255, 0.3);
+/* ---------- Body ---------- */
+.projectIndex {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.18em;
+    color: var(--accent-text);
+    margin-bottom: 0.7rem;
 }
 
 .projectName {
-    font-size: 1.4rem;
-    padding-bottom: 0.3rem;
-    font-family: 'Courier New', monospace;
-    color: #00ffff;
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 3.2vw, 2rem);
     font-weight: 700;
-    letter-spacing: 0.08rem;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin-bottom: 0.9rem;
 }
 
-.projectPara {
+.projectDesc {
+    color: var(--text-muted);
     font-size: 1rem;
-    padding-left: 0;
-    font-family: 'Courier New', monospace;
-    color: rgba(255, 255, 255, 0.9);
-    line-height: 1.5;
+    line-height: 1.75;
+    margin-bottom: 1.4rem;
 }
 
-.githubLINK {
-    text-align: center;
-    margin-top: 4rem;
-    max-width: 60rem;
-    margin-left: auto;
-    margin-right: auto;
+.projectTags {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 1.5rem;
 }
 
-.GitHub{
-    font-size: 1.4rem;
-    font-family: 'Courier New', monospace;
-    color: rgba(255, 255, 255, 0.9);
-    display: block;
-    margin-bottom: 1rem;
+/* No link below them on some projects — don't leave the gap for one */
+.projectTags:last-child { margin-bottom: 0; }
+
+.projectTags li {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+    padding: 0.32rem 0.7rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.022);
 }
 
-.githubHyper{
-    font-size: 1.4rem;
+/* Stands where the link would be, in the quieter register of a caption */
+.projectNote {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
 }
 
-.gaussionHyper{
-    font-size: 2rem;
-    color: rgb(31, 126, 120);
+.projectLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--accent-text);
+    padding-bottom: 0.2rem;
+    border-bottom: 1px solid var(--accent-line);
+    transition: gap 0.2s var(--ease), border-color 0.2s var(--ease);
 }
 
-.projectHyper{
-    margin-top: 0.5rem;
-    padding-bottom: 0.5rem;
+.projectLink:hover {
+    gap: 0.8rem;
+    border-bottom-color: var(--accent);
 }
 
-.projectHyper .link a,
-.projectHyper .link .maintenanceLink {
-    display: inline-block;
-    padding: 0.4rem 1rem;
-    background: transparent;
-    border: 1px solid rgba(0, 255, 255, 0.3);
-    border-radius: 0.3rem;
-    color: rgba(0, 255, 255, 0.85);
-    text-decoration: none;
-    font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
-    font-weight: 400;
-    transition: border-color 0.2s ease, background 0.2s ease;
-    text-shadow: none;
-    cursor: pointer;
+/* ---------- Repo callout ---------- */
+.worksCta {
+    margin-top: clamp(4rem, 9vw, 6rem);
+    padding: clamp(1.75rem, 4vw, 2.5rem);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
 }
 
-.projectHyper .link a::after {
-    display: none;
+.worksCta p {
+    color: var(--text-muted);
+    font-size: 1.02rem;
+    max-width: 30rem;
 }
 
-.projectHyper .link a:hover {
-    background: rgba(0, 255, 255, 0.06);
-    border-color: rgba(0, 255, 255, 0.6);
-    color: rgba(0, 255, 255, 0.85);
-    text-shadow: none;
-    transform: none;
-}
-
-.projectHyper .link .maintenanceLink {
-    cursor: not-allowed;
-    user-select: none;
-}
-
-.link a {
-    color: #00ffff;
-    text-decoration: none;
-    font-family: 'Courier New', monospace;
-    position: relative;
-    transition: all 0.3s ease;
-    text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
-}
-
-.link a::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background: linear-gradient(90deg, #00ffff, #00ff88);
-    transition: width 0.3s ease;
-}
-
-.link a:hover::after {
-    width: 100%;
-}
-
-.link a:hover {
-    color: #00ffff;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 20px rgba(0, 255, 255, 0.5);
-    transform: translateX(5px);
-}
-
-/* Mobile Responsive Styles */
-@media (max-width: 768px) {
-    #works {
-        margin: 4rem auto 0;
-        padding: 2rem 1rem;
+/* ---------- Stacked layout ---------- */
+@media (max-width: 860px) {
+    .project,
+    .project.isFlipped {
+        grid-template-columns: 1fr;
+        gap: 1.75rem;
     }
 
-    .header {
-        font-size: 2.5rem;
-        letter-spacing: 0.2rem;
-        margin-bottom: 2rem;
-    }
+    /* Image always leads once stacked, regardless of desktop side */
+    .project.isFlipped .projectMediaCol { order: 0; }
+    .project.isFlipped .projectBody     { order: 0; }
 
-    .projectCarousel {
-        flex-wrap: wrap;
-        gap: 1rem;
-        justify-content: center;
-    }
-
-    .navButton {
-        font-size: 2.5rem;
-        width: 3.5rem;
-        height: 3.5rem;
-        order: 2;
-    }
-
-    .projectList {
-        order: 1;
-        max-width: 100%;
-        width: 100%;
-        flex-basis: 100%;
-    }
-
-    .project {
-        flex-direction: column;
-        padding: 1.5rem;
-        gap: 1rem;
-    }
-
-    .projectMedia {
-        width: 100%;
-    }
-
-    .projectImageContainer {
-        height: 15rem;
-    }
-
-    .projectContent {
-        max-height: none;
-    }
-
-    .projectName {
-        font-size: 1.2rem;
-    }
-
-    .projectPara {
-        font-size: 0.9rem;
-        line-height: 1.4;
-    }
-
-    .projectCounter {
-        font-size: 1.2rem;
-        order: 2;
-        margin: 1rem 0;
-    }
-
-    .githubLINK {
-        margin-top: 2rem;
-    }
-
-    .GitHub {
-        font-size: 1.1rem;
-    }
-
-    .githubHyper {
-        font-size: 1.2rem;
-    }
-
-    .projectHyper .link a,
-    .projectHyper .link .maintenanceLink {
-        padding: 0.35rem 0.8rem;
-        font-size: 0.85rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .header {
-        font-size: 2rem;
-    }
-
-    .navButton {
-        font-size: 2rem;
-        width: 3rem;
-        height: 3rem;
-    }
-
-    .projectImageContainer {
-        height: 12rem;
-    }
-
-    .project {
-        padding: 1rem;
-    }
-
-    .projectName {
-        font-size: 1.1rem;
-    }
-
-    .projectPara {
-        font-size: 0.85rem;
-    }
+    .projectMedia { aspect-ratio: 16 / 9; }
 }
