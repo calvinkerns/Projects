@@ -138,3 +138,74 @@ button:hover {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+#helpPanel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 260px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 15px 18px;
+    border-radius: 8px;
+    color: white;
+    z-index: 100;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+#helpPanel h2 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #4CAF50;
+}
+
+#helpPanel h2 + * {
+    margin-top: 0;
+}
+
+#helpPanel p {
+    margin: 0 0 10px;
+    color: #d6d6d6;
+}
+
+#helpPanel p:last-child {
+    margin-bottom: 0;
+}
+
+#helpPanel strong {
+    color: #ffffff;
+}
+
+.help-keys {
+    margin: 0 0 18px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 12px;
+    align-items: baseline;
+}
+
+.help-keys dt {
+    font-weight: bold;
+    color: #4CAF50;
+    white-space: nowrap;
+}
+
+.help-keys dd {
+    margin: 0;
+    color: #d6d6d6;
+}
+
+@media (max-width: 760px) {
+    #helpPanel {
+        position: fixed;
+        top: auto;
+        bottom: 20px;
+        right: 20px;
+        left: 20px;
+        width: auto;
+        max-height: 40vh;
+    }
+}
