@@ -56,8 +56,9 @@ class App {
             // closure every single frame.
             this.boundAnimate = () => this.animate();
 
-            // Test initial render
-            this.loadSplats(this.splatGenerator.loadGridData(5, 1.0)); // Start with a small grid
+            // The Van Gogh room is the default scene; it streams in while the
+            // render loop is already running.
+            this.loadVanGoghRoom();
             this.animate();
         } catch (e) {
             console.error('Initialization error:', e);
@@ -196,39 +197,45 @@ class App {
             }
         });
         
-        document.getElementById('loadVanGoghBtn').onclick = async () => {
-            this.reinitializeCamera();
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            const loadingText = document.getElementById('loadingText');
-            
-            try {
-                loadingOverlay.style.display = 'flex';
-                loadingText.textContent = 'Fetching PLY file...';
-                
-                const response = await fetch('van_gogh_room.ply');
-                const blob = await response.blob();
-                
-                loadingText.textContent = 'Processing PLY data...';
-                console.time('PLY Loading');
-                const splats = await PLYParser.parsePLY(blob);
-                console.timeEnd('PLY Loading');
-                
-                if (splats) {
-                    loadingText.textContent = 'Initializing scene...';
-                    console.time('Initial Gaussian Update');
-                    this.loadSplats(splats, 'ply');
-                    console.timeEnd('Initial Gaussian Update');
-                }
-            } catch (error) {
-                loadingText.textContent = 'Error loading model: ' + error.message;
-                console.error('Failed to load Van Gogh room PLY file:', error);
-            } finally {
-                // Hide loading overlay after a short delay to ensure user sees completion
-                setTimeout(() => {
-                    loadingOverlay.style.display = 'none';
-                }, 500);
+        document.getElementById('loadVanGoghBtn').onclick = () => this.loadVanGoghRoom();
+    }
+
+    // Used both by the Van Gogh button and by startup, since it is the default scene.
+    async loadVanGoghRoom() {
+        this.reinitializeCamera();
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingText = document.getElementById('loadingText');
+
+        try {
+            loadingOverlay.style.display = 'flex';
+            loadingText.textContent = 'Fetching PLY file...';
+
+            const response = await fetch('van_gogh_room.ply');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status} fetching van_gogh_room.ply`);
             }
-        };
+            const blob = await response.blob();
+
+            loadingText.textContent = 'Processing PLY data...';
+            console.time('PLY Loading');
+            const splats = await PLYParser.parsePLY(blob);
+            console.timeEnd('PLY Loading');
+
+            if (splats) {
+                loadingText.textContent = 'Initializing scene...';
+                console.time('Initial Gaussian Update');
+                this.loadSplats(splats, 'ply');
+                console.timeEnd('Initial Gaussian Update');
+            }
+        } catch (error) {
+            loadingText.textContent = 'Error loading model: ' + error.message;
+            console.error('Failed to load Van Gogh room PLY file:', error);
+        } finally {
+            // Hide loading overlay after a short delay to ensure user sees completion
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+            }, 500);
+        }
     }
 
     hasViewChanged() {
