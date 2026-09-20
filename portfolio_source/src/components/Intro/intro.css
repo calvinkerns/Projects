@@ -1,394 +1,207 @@
-#intro {
-    min-height: calc(100vh - 6rem);
-    width: 100%;
-    max-width: 75rem;
-    margin: 0 auto;
-    padding-top: var(--nav-height, 5rem);
-    overflow: visible;
-    position: relative;
+.heroSection {
+    padding-top: calc(var(--nav-height) + clamp(3.5rem, 9vw, 7rem));
 }
 
-.bg {
-    position: absolute;
-    top: 1rem;
-    right: 0;
-    z-index: -1;
-    object-fit: cover;
-    height: 100vh;
-    width: 30rem;
-    border-radius: 12rem;
-    flex: 0 0 auto;
-    max-width: 100%;
-    contain: layout style paint;
-}
-
-.introMainLayout {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
-    width: 100%;
-    max-width: 75rem;
-    position: relative;
-    z-index: 1;
-}
-
-.introContent {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+.hero {
     text-align: center;
-    padding: 3rem 2rem;
-    z-index: 2;
+    max-width: 56rem;
+    margin: 0 auto;
 }
 
-.hello {
-    font-size: 2.5rem;
-    font-weight: 200;
+.heroEyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0.4rem 0.95rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    margin-bottom: clamp(1.5rem, 4vw, 2.25rem);
 }
 
-.introName1 {
-    font-size: 4rem;
-    padding-bottom: 1rem;
+.heroEyebrow::before {
+    content: '';
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-.introName2 {
-    font-size: 5rem;
-    line-height: 1.2;
-    display: block;
-    margin-bottom: 1rem;
-    transition: all 0.8s ease-in-out;
-}
-
-.introText {
-    font-size: 1.6rem;
-    line-height: 1.5;
-    padding-bottom: 1rem;
-    display: block;
-    transition: all 0.8s ease-in-out;
-}
-
-.decode-text {
-    font-family: 'Courier New', monospace;
-    color: white;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-    max-width: 100%;
+/* ---------- Decoding headline ----------
+   Monospace is load-bearing: the scramble swaps characters every ~28ms and a
+   proportional face would make the whole line jitter horizontally. */
+.heroName {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: clamp(2.35rem, 10.5vw, 5.75rem);
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    margin-bottom: clamp(0.85rem, 2vw, 1.35rem);
+    min-height: 1.08em;
+    color: var(--text);
+    text-shadow: 0 0 42px rgba(255, 255, 255, 0.16);
     overflow-wrap: break-word;
 }
 
-.introPara {
-    font-size: 1.3rem;
-    font-weight: 100;
+.heroTagline {
+    font-family: var(--font-mono);
+    font-size: clamp(0.72rem, 2.55vw, 1.05rem);
+    letter-spacing: 0.01em;
+    color: var(--accent-text);
+    min-height: 1.6em;
+    margin-bottom: clamp(2rem, 5vw, 2.75rem);
+    overflow-wrap: break-word;
 }
 
-.aboutParagraph {
-    max-width: 80rem;
-    margin: 2rem auto;
-    padding: 2rem 3rem;
-    text-align: center;
-    z-index: 2;
-}
-
-.aboutParagraph p {
-    font-size: 1.4rem;
-    line-height: 1.9;
-    color: rgba(255, 255, 255, 0.85);
-    font-family: 'Courier New', monospace;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
-    opacity: 1;
-    transform: translateY(0);
-    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
-    will-change: opacity, transform;
-    margin-bottom: 1rem;
-}
-
-.aboutParagraph.visible p {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.introBoxes {
-    display: flex;
-    flex-direction: row;
-    gap: 2rem;
-    justify-content: center;
-    align-items: stretch;
-    padding: 2rem;
-    width: 100%;
-    z-index: 2;
-}
-
-.introBox {
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 0.5rem;
-    padding: 2rem 2.5rem;
-    flex: 1;
-    max-width: 35rem;
-    min-height: 20rem;
-    color: #fff;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-    font-family: 'Courier New', monospace;
-    animation: staticFlicker 1.3s ease-out;
-    will-change: opacity, transform;
-    transform: translateZ(0);
-}
-
-.educationBox {
-    animation-delay: 0.5s;
-    opacity: 0;
-    animation-fill-mode: forwards;
-}
-
-.experienceBox {
-    animation-delay: 0.8s;
-    opacity: 0;
-    animation-fill-mode: forwards;
-}
-
-.introBox::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image:
-        repeating-linear-gradient(
-            0deg,
-            transparent 0px,
-            transparent 8px,
-            rgba(255, 255, 255, 0.9) 8px,
-            rgba(0, 0, 0, 0.9) 10px,
-            transparent 10px,
-            transparent 20px,
-            rgba(255, 255, 255, 0.7) 20px,
-            rgba(0, 0, 0, 0.8) 22px,
-            transparent 22px,
-            transparent 30px,
-            rgba(255, 255, 255, 0.95) 30px,
-            rgba(0, 0, 0, 0.95) 33px,
-            transparent 33px,
-            transparent 45px,
-            rgba(255, 255, 255, 0.6) 45px,
-            rgba(0, 0, 0, 0.7) 47px,
-            transparent 47px,
-            transparent 60px
-        );
-    background-size: 100% 200%;
-    border-radius: 0.5rem;
-    z-index: 10;
-    pointer-events: none;
-    mix-blend-mode: difference;
-}
-
-.educationBox::before,
-.experienceBox::before {
-    animation: staticBands 1.1s ease-out forwards;
-}
-
-.educationBox::before {
-    animation-delay: 0.5s;
-}
-
-.experienceBox::before {
-    animation-delay: 0.8s;
-}
-
-.introBox::after {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    background: linear-gradient(45deg, #00aaaa, #00ffff, #00ff88, #00aaaa);
-    background-size: 400%;
-    border-radius: 0.5rem;
-    z-index: -1;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    animation: gradientRotate 4s ease-in-out infinite;
-    will-change: background-position;
-    transform: translateZ(0);
-}
-
-.introBox:hover::after {
-    opacity: 0.3;
-}
-
-.introBox:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.4);
-}
-
-@keyframes gradientRotate {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-@keyframes staticFlicker {
-    0% {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-@keyframes staticBands {
-    0% {
-        background-position: 0 -200%;
-        opacity: 0.8;
-    }
-    25% {
-        background-position: 0 -100%;
-        opacity: 0.6;
-    }
-    50% {
-        background-position: 0 0%;
-        opacity: 0.3;
-    }
-    75% {
-        background-position: 0 80%;
-        opacity: 0.1;
-    }
-    100% {
-        background-position: 0 150%;
-        opacity: 0;
-    }
-}
-
-.introBox h2 {
-    font-size: 2.2rem;
-    margin-bottom: 1rem;
-    color: #fff;
-    text-transform: uppercase;
-    letter-spacing: 0.2rem;
-    font-weight: 700;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-    position: relative;
-    padding-bottom: 0.5rem;
-}
-
-.introBox h2::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 50%;
-    height: 2px;
-    background: linear-gradient(90deg, rgba(255,255,255,0.8), transparent);
-}
-
-.introBox ul {
-    list-style: none;
-    font-size: 1.2rem;
-    margin: 0;
-    padding: 0;
+/* ---------- Bio ---------- */
+.heroBio p {
+    color: var(--text-muted);
+    font-size: clamp(1rem, 1.6vw, 1.075rem);
     line-height: 1.8;
+    margin-bottom: 1.15rem;
 }
 
-.introBox ul li {
+.heroBio strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.heroActions {
+    margin-top: clamp(2rem, 4vw, 2.5rem);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem;
+}
+
+.heroSocial {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: 0.4rem;
+}
+
+.heroSocial a {
+    display: grid;
+    place-items: center;
+    width: 2.7rem;
+    height: 2.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease),
+                transform 0.2s var(--ease);
+}
+
+.heroSocial a:hover {
+    border-color: var(--accent-line);
+    background: var(--accent-soft);
+    transform: translateY(-2px);
+}
+
+.heroSocial svg {
+    width: 1.15rem;
+    height: 1.15rem;
+    display: block;
+    opacity: 0.82;
+    transition: opacity 0.2s var(--ease);
+}
+
+.heroSocial a:hover svg {
+    opacity: 1;
+}
+
+/* ============================================================
+   Education / Experience timelines
+   ============================================================ */
+/* Capped to the hero's width and centred, so the two columns line up with
+   the bio above instead of spanning the wider container on their own. */
+.backgroundGrid {
+    margin-top: clamp(4.5rem, 10vw, 7rem);
+    margin-inline: auto;
+    max-width: 56rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+    gap: clamp(2rem, 5vw, 3.5rem);
+}
+
+.timelineTitle {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent-text);
+    padding-bottom: 1rem;
+    margin-bottom: 1.75rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.timeline { list-style: none; }
+
+.timelineItem {
     position: relative;
-    padding-left: 1.5rem;
-    margin-bottom: 0.8rem;
+    padding-left: 1.75rem;
+    padding-bottom: 1.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.28rem;
 }
 
-.introBox ul li::before {
-    content: '▹';
+/* Connecting rail — stops at the last item rather than dangling past it */
+.timelineItem::before {
+    content: '';
+    position: absolute;
+    left: 0.245rem;
+    top: 0.75rem;
+    bottom: -0.35rem;
+    width: 1px;
+    background: var(--border-strong);
+}
+
+.timelineItem:last-child { padding-bottom: 0; }
+.timelineItem:last-child::before { display: none; }
+
+.timelineItem::after {
+    content: '';
     position: absolute;
     left: 0;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 1.4rem;
+    top: 0.42rem;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1.5px solid var(--border-strong);
 }
 
-/* Mobile Responsive Styles */
-@media (max-width: 768px) {
-    #intro {
-        min-height: auto;
-        padding: 2rem 1rem;
-        padding-top: calc(var(--nav-height, 5rem) + 1rem);
-    }
+.timelineItem.isCurrent::after {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+}
 
-    .bg {
-        display: none;
-    }
+.timelineRole {
+    font-family: var(--font-display);
+    font-size: 1.06rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.35;
+}
 
-    .hello {
-        font-size: 1.8rem;
-    }
+.timelineOrg {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
 
-    .introName1 {
-        font-size: 2.5rem;
-    }
-
-    .introContent {
-        padding: 2rem 1rem;
-        width: 100%;
-    }
-
-    .introName2 {
-        font-size: clamp(1.75rem, 11vw, 3rem);
-    }
-
-    .introText {
-        font-size: clamp(0.85rem, 4.2vw, 1.2rem);
-    }
-
-    .introPara {
-        font-size: 1.1rem;
-    }
-
-    .aboutParagraph {
-        padding: 1rem;
-    }
-
-    .aboutParagraph p {
-        font-size: 1.1rem;
-        line-height: 1.6;
-    }
-
-    .introBoxes {
-        flex-direction: column;
-        padding: 1rem;
-        gap: 1.5rem;
-    }
-
-    .introBox {
-        max-width: 100%;
-        min-height: auto;
-        padding: 1.5rem;
-    }
-
-    .introBox h2 {
-        font-size: 1.8rem;
-    }
-
-    .introBox ul {
-        font-size: 1rem;
-    }
-
-    .introBox ul li::before {
-        font-size: 1.2rem;
-    }
+.timelineMeta {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
 }
