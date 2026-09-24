@@ -107,9 +107,8 @@ if (n >= 2) {
   console.log(`  player 0 won     ${decided ? Math.round((100 * p0wins) / decided) : 0}% of decided games`);
 }
 
-// Bradley-Terry by minorisation-maximisation. Draws count as half a win.
-// A weak prior (one win and one loss against a strength-1 opponent) keeps
-// unbeaten or winless bots finite.
+// Bradley-Terry ratings. Draws count as half a win, with a weak prior
+// so unbeaten or winless bots stay finite.
 function bradleyTerry(n, games) {
   const wins = new Float64Array(n);
   const count = Array.from({ length: n }, () => new Float64Array(n));

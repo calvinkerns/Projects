@@ -1,6 +1,4 @@
-// Static file server for local development. Unlike `python3 -m http.server`, it
-// tells the browser never to reuse old copies, so after an edit the page can't
-// end up running a mix of old and new modules.
+// Static file server for local development, with caching disabled.
 //   node tools/serve.mjs [port]
 
 import { createServer } from 'node:http';

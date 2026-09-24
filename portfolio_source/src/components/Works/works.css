@@ -4,8 +4,7 @@
     gap: clamp(4rem, 9vw, 7rem);
 }
 
-/* Top-aligned rather than centred: centring let each row settle by its own
-   tallest column, so the images started at a different height on every row. */
+/* top-aligned so images line up across rows */
 .project {
     display: grid;
     grid-template-columns: 1.3fr 1fr;
@@ -13,16 +12,13 @@
     align-items: start;
 }
 
-/* Every other row swaps sides. Source order stays image-then-text so the
-   reading order is unchanged for screen readers and on mobile. The column
-   widths swap with it, so the image is the same size on every row. */
+/* every other row swaps sides */
 .project.isFlipped { grid-template-columns: 1fr 1.3fr; }
 .project.isFlipped .projectMediaCol { order: 2; }
 .project.isFlipped .projectBody     { order: 1; }
 
 /* ---------- Media ---------- */
-/* The caption's space is reserved on every row, captioned or not, so the
-   images line up with each other instead of shifting up by a caption. */
+/* reserve caption space so images line up */
 .projectMediaCol {
     position: relative;
     padding-bottom: 1.8rem;
@@ -133,7 +129,7 @@
     margin-bottom: 1.5rem;
 }
 
-/* No link below them on some projects — don't leave the gap for one */
+/* no gap when there's no link below */
 .projectTags:last-child { margin-bottom: 0; }
 
 .projectTags li {
@@ -147,7 +143,7 @@
     background: rgba(255, 255, 255, 0.022);
 }
 
-/* Stands where the link would be, in the quieter register of a caption */
+/* shown in place of a link */
 .projectNote {
     font-family: var(--font-mono);
     font-size: 0.78rem;

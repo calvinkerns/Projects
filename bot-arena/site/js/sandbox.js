@@ -1,12 +1,7 @@
-// Runs one untrusted bot in its own Web Worker.
-//
-// The bot's source is pasted into the worker script as text (no eval), after a
-// prelude that removes network and storage APIs, makes time and randomness
-// deterministic, and defines the friendly game API. The page's
-// Content-Security-Policy is inherited by the worker, so even a bot that undoes
-// the prelude can't reach other hosts.
+// Runs one untrusted bot in its own Web Worker. A prelude removes network/storage
+// APIs and makes time and randomness deterministic.
 
-import { makeGame } from './botapi.js?v=ea5fcfd1';
+import { makeGame } from './botapi.js?v=f5617c9e';
 
 const LOG_LINES_PER_TICK = 30;
 const LOG_LINES_PER_MATCH = 500;

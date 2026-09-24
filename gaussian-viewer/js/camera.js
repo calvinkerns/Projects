@@ -11,8 +11,7 @@ export class Camera {
         this.viewMatrix = mat4.create();
         this.projMatrix = mat4.create();
         
-        // Focal length in pixels. Derived from fov + canvas size in
-        // updateMatrices() -- see the note there.
+        // focal length in pixels, recomputed in updateMatrices()
         this.fx = 600;
         this.fy = 600;
         
@@ -21,8 +20,6 @@ export class Camera {
         this.near = 0.01;  
         this.far = 5000.0; 
         
-        // Cached once. updateMatrices() runs on every mousemove (up to ~1kHz on a
-        // high-polling mouse), and it used to do a getElementById each time.
         this.canvas = document.getElementById('glcanvas');
 
         this.updateMatrices();
@@ -39,12 +36,7 @@ export class Camera {
         const aspectRatio = canvas.width / canvas.height;
         mat4.perspective(this.projMatrix, this.fov, aspectRatio, this.near, this.far);
 
-        // The shader's EWA Jacobian must use the SAME focal length as the
-        // projection matrix above, or the projected covariance comes out at the
-        // wrong scale. These were pinned at 600, which is ~1.56x too small at
-        // 1080p and drifted further every time the window was resized.
-        // For gl-matrix's perspective() the pixel focal length is the same on
-        // both axes, since the aspect correction is already in the matrix.
+        // must match the projection matrix so the shader's covariance is the right scale
         this.fy = (canvas.height * 0.5) / Math.tan(this.fov * 0.5);
         this.fx = this.fy;
     }

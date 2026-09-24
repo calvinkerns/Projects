@@ -4,7 +4,7 @@
 :root {
     color-scheme: dark;
 
-    /* Surfaces — cool near-black, lifted in small steps */
+    /* Surfaces */
     --bg:            #0A0C10;
     --bg-glow:       #10141c;
     --surface:       rgba(255, 255, 255, 0.030);
@@ -17,7 +17,7 @@
     --text-muted: #99A2AF;
     --text-dim:   #69717F;
 
-    /* One accent, warm against the cool ground */
+    /* Accent */
     --accent:       #FFB454;
     --accent-text:  #FFC880;
     --accent-soft:  rgba(255, 180, 84, 0.13);
@@ -69,7 +69,7 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* Two soft light sources so the page isn't a flat black rectangle */
+/* background glow */
 body::before {
     content: '';
     position: fixed;
@@ -81,7 +81,7 @@ body::before {
         radial-gradient(52rem 38rem at 6%  14%,  rgba(96, 132, 255, 0.070), transparent 60%);
 }
 
-/* Fine grain — keeps large dark areas from banding */
+/* grain to prevent banding */
 body::after {
     content: '';
     position: fixed;
@@ -126,7 +126,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
     position: relative;
 }
 
-/* Hairline between sections — replaces the old shimmer dividers */
+/* divider between sections */
 .section + .section::before {
     content: '';
     position: absolute;

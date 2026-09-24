@@ -1,6 +1,5 @@
-// End-to-end check of the site in headless Chrome, without running a web
-// server: page requests are answered straight from site/ on disk, and /api/*
-// from the real Worker code backed by an in-memory database.
+// End-to-end test in headless Chrome. Serves site/ from disk and /api/* from
+// the Worker with an in-memory database.
 //   node --no-warnings tools/browser-offline.mjs [--shot .shots/community.png]
 
 import puppeteer from 'puppeteer-core';

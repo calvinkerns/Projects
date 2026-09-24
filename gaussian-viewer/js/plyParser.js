@@ -86,10 +86,7 @@ export class PLYParser {
             const actualBytes = buffer.byteLength - headerEnd;
             console.log(`Expected ${expectedBytes} bytes of data, got ${actualBytes} bytes`);
 
-            // Read vertex data. The format is binary_little_endian float32 and
-            // every mainstream platform is little-endian, so the payload can be
-            // reinterpreted wholesale instead of pulled out one getFloat32 at a
-            // time (that was 5.8M DataView calls for the van Gogh scene).
+            // Read vertex data (little endian float32)
             const floatCount = header.vertexCount * header.properties.length;
             const payloadBytes = buffer.byteLength - headerEnd;
             if (payloadBytes < floatCount * 4) {
@@ -100,10 +97,10 @@ export class PLYParser {
 
             let floatArray;
             if (headerEnd % 4 === 0) {
-                // Already aligned: view the payload directly, no copy at all.
+                // already aligned, no copy needed
                 floatArray = new Float32Array(buffer, headerEnd, floatCount);
             } else {
-                // Float32Array needs a 4-byte-aligned offset; slice to realign.
+                // needs 4-byte alignment
                 floatArray = new Float32Array(
                     buffer.slice(headerEnd, headerEnd + floatCount * 4)
                 );
@@ -174,12 +171,7 @@ export class PLYParser {
                 (floatArray[i + indices.z] - centerZ) * scale_factor
             ];
 
-            // Scale values with increased base size
-            // Artistic inflation of the trained scales. Reference 3DGS uses 1.0;
-            // this was raised to 8.0 to compensate for splats collapsing under the
-            // old (broken) covariance projection. Now that the projection is
-            // correct this is the single knob for overall splat size -- lower it
-            // if the scene looks too blobby.
+            // Scale values with increased base size, lower if splats look too blobby
             const scaleMultiplier = 8.0;
             const scales = [
                 Math.exp(floatArray[i + indices.scale_0]) * scaleMultiplier,

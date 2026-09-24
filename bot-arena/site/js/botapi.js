@@ -1,6 +1,5 @@
-// The friendly bot API. makeGame turns the engine's plain view into tile
-// objects with helpers. It must stay self-contained (no imports, no outside
-// variables): the sandbox injects its source text into every bot's worker.
+// Bot API. Must stay self-contained (no imports), since the sandbox
+// injects its source into each bot's worker.
 
 export function makeGame(view) {
   const size = view.size;

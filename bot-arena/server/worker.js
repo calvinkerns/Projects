@@ -1,11 +1,5 @@
-// Surge community API: stores bots people submit, lists them for everyone,
-// and keeps the top-10 scoreboard.
-//
-// Bots arrive already minified and scrambled by the submitter's browser, so
-// this never handles readable source. The submitter's browser also plays the
-// scoreboard challenges and sends the results; this checks they're consistent
-// before slotting the bot in. Anyone can submit within the rate limits; the
-// owner can delete a bot with the admin token.
+// Surge community API: stores submitted bots and the top-10 scoreboard.
+// Bots arrive minified/scrambled, and challenge results are checked before ranking.
 
 const MAX_CODE_CHARS = 40000;
 const MAX_LADDER_CHARS = 30000;

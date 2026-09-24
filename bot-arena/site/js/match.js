@@ -1,7 +1,7 @@
 // Plays a full match in the browser, each bot in its own sandboxed worker.
 
-import { createMatch, viewFor, step, forfeit, newReplay, recordTick } from './engine.js?v=ea5fcfd1';
-import { createBotRunner } from './sandbox.js?v=ea5fcfd1';
+import { createMatch, viewFor, step, forfeit, newReplay, recordTick } from './engine.js?v=f5617c9e';
+import { createBotRunner } from './sandbox.js?v=f5617c9e';
 
 export const TICK_LIMIT_MS = 50;
 const FIRST_TICK_LIMIT_MS = 1000; // also covers starting the worker

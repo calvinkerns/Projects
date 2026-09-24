@@ -4,9 +4,7 @@ function bot(game) {
   const stacks = game.myTiles.filter((t) => t.mass >= 2).sort((a, b) => b.mass - a.mass);
   if (stacks.length === 0) return;
 
-  // Moving out of my core leaves it with 1. An enemy stack d steps away arrives
-  // with about (mass - d), by which time my core has regrown to (1 + d).
-  // Only empty the core if every enemy stack would still lose.
+  // Only empty the core if no enemy stack could take it before it regrows.
   const coreSafeToEmpty = game.enemyTiles.every((t) => {
     const d = t.distanceTo(myCore);
     return t.mass - d + 8 < 1 + d; // keep a cushion: their stack can still grow

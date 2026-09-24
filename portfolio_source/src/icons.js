@@ -5,8 +5,7 @@ import javascriptIMG from './assets/javascriptIMG.png';
 import cIMG from './assets/cIMG.png';
 import reactIMG from './assets/React.png';
 
-/* Brand icons lifted out of the old Skills component so both the
-   capability index and the project cards can render them. */
+/* brand icons used by skills and projects */
 
 const SqlIcon = () => (
   <svg viewBox="0 0 128 128" style={{width: '100%', height: '100%'}}>
