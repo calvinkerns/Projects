@@ -24,6 +24,7 @@
   <section class="pane code-pane" aria-label="Your bot">
     <div class="row">
       <label class="field grow">Bot name <input id="bot-name" maxlength="24" autocomplete="off"></label>
+      <label class="field" data-community hidden>Made by <input id="author" maxlength="24" autocomplete="off" placeholder="optional"></label>
       <label class="field">Start from
         <select id="template"><option value="">Choose a bot…</option></select>
       </label>
@@ -58,6 +59,7 @@
     <div class="row">
       <button type="button" id="share-bot" class="btn">Copy challenge link</button>
       <button type="button" id="share-replay" class="btn">Copy replay link</button>
+      <button type="button" id="submit-bot" class="btn" data-community hidden>Submit to the arena</button>
     </div>
   </section>
 
@@ -114,6 +116,7 @@
     <li>Each tick must finish within <span data-limit></span> ms or your bot forfeits.</li>
     <li>If <code>bot()</code> throws, you don't move that tick and the error shows in the console.</li>
     <li>Bots run in a sandbox with no network access. <code>console.log</code> prints to the console panel.</li>
+    <li data-community hidden><b>Submit to the arena</b> shares your bot with everyone who visits. Its code is minified and scrambled, so it isn't shown on the site, but it isn't encrypted.</li>
   </ul>
 </dialog>
 </body>

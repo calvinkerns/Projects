@@ -1,0 +1,12 @@
+name = "surge-api"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+[vars]
+# Sites allowed to submit bots. Add your own domain here if the site moves.
+ALLOWED_ORIGINS = "https://calvinkerns.github.io,http://localhost:8080"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "surge"
+database_id = "REPLACE_WITH_YOUR_DATABASE_ID"
