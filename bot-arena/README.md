@@ -37,10 +37,48 @@ Tiles come with helpers: `neighbors`, `moveTo`, `stepToward`, `distanceTo` and `
 - **`site/js/viewer.js`** is the canvas replay viewer.
 - **Replays** are just the seed plus every move. Replaying re-runs the engine rather than the bots, so a replay is a few kilobytes and fits in a share link.
 
+## Community bots
+
+Visitors can press **Submit to the arena** to share a bot with everyone. The site itself is static files, so submissions are stored by a small Cloudflare Worker (`server/`) with a D1 database, both on Cloudflare's free tier.
+
+A submitted bot is minified in the submitter's browser (comments stripped, variables renamed) and scrambled before upload, so its code never appears on the page. It isn't encrypted: someone determined could recover the minified code from DevTools.
+
+Until the API is deployed and `site/js/config.js` points at it, the community features stay hidden.
+
+### Deploying the API (once)
+
+You need a free Cloudflare account. From `bot-arena/server`:
+
+```
+npx wrangler login                       # opens your browser to sign in
+npx wrangler d1 create surge             # copy the database_id it prints into wrangler.toml
+npx wrangler d1 execute surge --remote --file=schema.sql
+npx wrangler secret put ADMIN_TOKEN      # any long random string; lets you delete bots
+npx wrangler secret put IP_SALT          # optional: any random string, hides IPs better
+npx wrangler deploy                      # prints https://surge-api.<you>.workers.dev
+```
+
+Then from `bot-arena`, point the site at it and push:
+
+```
+node tools/set-api.mjs https://surge-api.<you>.workers.dev
+```
+
+### Moderating
+
+```
+curl https://surge-api.<you>.workers.dev/bots                     # list bots and their ids
+curl -X DELETE https://surge-api.<you>.workers.dev/bots/<id> \\
+  -H "Authorization: Bearer <your ADMIN_TOKEN>"                   # delete one
+```
+
+One address can submit 5 bots an hour and 20 a day. Names must be unique, and a bot must pass a quick test match before it's uploaded.
+
 ## Dev tools
 
 ```
-node tools/test.mjs                                               # engine and bot API invariants
+npm test                                                          # engine, API, and minify tests
+npm run test:browser                                              # full site flow in headless Chrome, no server needed
 node tools/tournament.mjs --seeds 20 --size 15 site/bots/*.js     # round robin with ratings
 node tools/run.mjs site/bots/captain.js site/bots/rusher.js 42 --size 11 --out replay.json
 node tools/browser.mjs http://localhost:8080/ --shot .shots/page.png   # headless Chrome check

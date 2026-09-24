@@ -3,6 +3,7 @@
 import { RULES, MIN_TICKS, MAX_TICKS } from './engine.js';
 import { createViewer } from './viewer.js';
 import { runMatch, TICK_LIMIT_MS } from './match.js';
+import { communityEnabled, fetchCommunityBots, minifyBot, submitBot, NAME_PATTERN } from './community.js';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -14,6 +15,7 @@ const viewer = createViewer($('viewer'), { autoplay: true });
 const code = $('code');
 const nameInput = $('bot-name');
 let seedBots = [];
+let communityBots = [];
 let challenger = null;
 let currentReplay = null;
 let running = null; // AbortController for the match or tournament in progress
@@ -118,17 +120,28 @@ function showReplay(replay) {
 
 // ------------------------------------------------------------------ matches
 
-const opponents = () => (challenger ? [challenger, ...seedBots] : seedBots);
+const opponents = () => [...(challenger ? [challenger] : []), ...seedBots, ...communityBots];
 
 function fillOpponents(selectedId) {
   const select = $('opponent');
   select.replaceChildren();
-  for (const bot of opponents()) {
-    const option = document.createElement('option');
-    option.value = bot.id;
-    option.textContent = bot === challenger ? `⚔ ${bot.name} (challenge)` : bot.name;
-    option.title = bot.blurb;
-    select.append(option);
+  const groups = [
+    ['Challenge', challenger ? [challenger] : []],
+    ['House bots', seedBots],
+    ['Community bots', communityBots],
+  ];
+  for (const [label, bots] of groups) {
+    if (bots.length === 0) continue;
+    const group = document.createElement('optgroup');
+    group.label = label;
+    for (const bot of bots) {
+      const option = document.createElement('option');
+      option.value = bot.id;
+      option.textContent = bot === challenger ? `⚔ ${bot.name}` : bot.author ? `${bot.name} (by ${bot.author})` : bot.name;
+      option.title = bot.blurb || '';
+      group.append(option);
+    }
+    select.append(group);
   }
   select.value = selectedId;
 }
@@ -136,6 +149,7 @@ function fillOpponents(selectedId) {
 function setRunning(controller) {
   running = controller;
   $('fight').disabled = Boolean(controller);
+  $('submit-bot').disabled = Boolean(controller);
   $('tourney').textContent = controller ? 'Cancel' : 'Tournament';
 }
 
@@ -183,6 +197,7 @@ $('reseed').addEventListener('click', () => { $('seed').value = String(Math.floo
 // ------------------------------------------------------------------ tournament
 
 const TOURNAMENT_SEEDS = 4;
+const TOURNAMENT_COMMUNITY_LIMIT = 20;
 
 function cell(row, text, className) {
   const td = document.createElement('td');
@@ -199,7 +214,8 @@ async function tournament() {
   clearConsole();
 
   const me = { name: botName(), source: code.value };
-  const field = opponents();
+  // Community bots are capped so a tournament stays quick as more are submitted.
+  const field = [...(challenger ? [challenger] : []), ...seedBots, ...communityBots.slice(0, TOURNAMENT_COMMUNITY_LIMIT)];
   const total = field.length * TOURNAMENT_SEEDS;
   const tally = { w: 0, l: 0, d: 0 };
   let done = 0;
@@ -359,10 +375,62 @@ async function readHash() {
 
 window.addEventListener('hashchange', () => location.reload());
 
+// ------------------------------------------------------------------ community bots
+
+async function loadCommunity() {
+  try {
+    communityBots = await fetchCommunityBots();
+    fillOpponents($('opponent').value);
+  } catch (e) {
+    status(`Couldn't load community bots: ${e.message}`, 'error');
+  }
+}
+
+async function submitToArena() {
+  if (running) return;
+  const name = botName();
+  const author = $('author').value.trim();
+  if (!NAME_PATTERN.test(name)) return status('Bot names are 1-24 letters, numbers, spaces, dots, dashes or underscores.', 'error');
+  if (author && !NAME_PATTERN.test(author)) return status('Your name can use letters, numbers, spaces, dots, dashes or underscores.', 'error');
+
+  const controller = new AbortController();
+  setRunning(controller);
+  try {
+    // Test the minified version, since that's exactly what everyone else will run.
+    status('Minifying and test-running your bot…');
+    const minified = await minifyBot(code.value);
+    const { replay } = await runMatch({
+      a: { name, source: minified },
+      b: { name: 'Idler', source: 'function bot(game) {}' },
+      seed: 1,
+      rules: { size: 15, maxTicks: MIN_TICKS },
+      signal: controller.signal,
+    });
+    if (replay.result.forfeit === 0) throw new Error(`your bot ${replay.result.reason}, so it wasn't submitted`);
+    if (!confirm(`Submit "${name}" to the arena? Everyone who visits will be able to fight it. Its code is scrambled so it isn't shown on the site, but it isn't encrypted.`)) {
+      status('Not submitted.');
+      return;
+    }
+    const saved = await submitBot({ name, author, minified });
+    communityBots = [{ id: `community:${saved.id}`, name, author, blurb: 'Submitted by a visitor.', source: minified }, ...communityBots];
+    fillOpponents(`community:${saved.id}`);
+    status(`"${name}" is in the arena. Anyone can pick it as an opponent now.`, 'win');
+  } catch (e) {
+    status(`Couldn't submit: ${e.message}`, 'error');
+  } finally {
+    setRunning(null);
+  }
+}
+
+$('submit-bot').addEventListener('click', submitToArena);
+$('author').addEventListener('input', () => store.set('surge-lite.author', $('author').value));
+
 // ------------------------------------------------------------------ start
 
 async function start() {
+  for (const node of document.querySelectorAll('[data-community]')) node.hidden = !communityEnabled();
   nameInput.value = store.get('surge-lite.name') || 'My bot';
+  $('author').value = store.get('surge-lite.author') || '';
   const savedSize = store.get('surge-lite.size');
   if ([...$('size').options].some((o) => o.value === savedSize)) $('size').value = savedSize;
   $('ticks').value = store.get('surge-lite.ticks') || String(RULES.maxTicks);
@@ -387,6 +455,7 @@ async function start() {
   const defaultOpponent = seedBots.find((b) => b.id === 'grower.js') || seedBots[0];
   fillOpponents(challenger ? challenger.id : defaultOpponent.id);
   if (!openedReplay) showReplay(await demo);
+  if (communityEnabled()) loadCommunity();
 }
 
 start().catch((e) => status(`Failed to start: ${e.message}`, 'error'));
