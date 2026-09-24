@@ -17,6 +17,7 @@
     <p class="hook">Write a bot. Watch it fight.</p>
   </div>
   <p class="note">Bots run sandboxed in Web Workers, right here in your browser.</p>
+  <button type="button" id="scoreboard-open" class="btn primary" data-community hidden>Scoreboard</button>
   <button type="button" id="docs-open" class="btn">How to play</button>
 </header>
 
@@ -48,7 +49,7 @@
         <span class="seed"><input id="seed" type="number" min="0" step="1"><button type="button" id="reseed" class="btn icon" aria-label="Random map seed">⟳</button></span>
       </label>
       <button type="button" id="fight" class="btn primary">Fight ▶</button>
-      <button type="button" id="tourney" class="btn">Tournament</button>
+      <button type="button" id="tourney" class="btn" title="Play your bot against every bot to test it. Nothing is saved.">Practice vs all</button>
     </div>
     <div id="status" class="status" role="status"></div>
     <div class="console-head">
@@ -67,14 +68,6 @@
     <div id="challenge" class="challenge" hidden></div>
     <div id="viewer"></div>
     <div id="results" class="results" hidden></div>
-    <div class="scoreboard" data-community hidden>
-      <div class="scoreboard-head">
-        <h2>Scoreboard</h2>
-        <button type="button" id="scoreboard-help" class="btn small">How it works</button>
-      </div>
-      <ol id="scoreboard" class="scoreboard-list"><li class="scoreboard-empty">Loading…</li></ol>
-      <div id="scoreboard-games" class="scoreboard-games" hidden></div>
-    </div>
   </section>
 </main>
 
@@ -126,6 +119,19 @@
     <li>Bots run in a sandbox with no network access. <code>console.log</code> prints to the console panel.</li>
     <li data-community hidden><b>Submit to the arena</b> shares your bot with everyone who visits. Its code is minified and scrambled, so it isn't shown on the site, but it isn't encrypted.</li>
   </ul>
+</dialog>
+
+<dialog id="scoreboard-dialog" class="docs scoreboard-dialog" aria-labelledby="scoreboard-title">
+  <div class="docs-head">
+    <h2 id="scoreboard-title">Scoreboard</h2>
+    <div class="dialog-actions">
+      <button type="button" id="scoreboard-help" class="btn small">How it works</button>
+      <button type="button" id="scoreboard-close" class="btn small">Close</button>
+    </div>
+  </div>
+  <p class="scoreboard-note">The top bots visitors have submitted. Each bot's games were played once, when it was submitted.</p>
+  <ol id="scoreboard" class="scoreboard-list"><li class="scoreboard-empty">Loading…</li></ol>
+  <div id="scoreboard-games" class="scoreboard-games" hidden></div>
 </dialog>
 
 <dialog id="scoreboard-help-dialog" class="docs" aria-labelledby="scoreboard-help-title">

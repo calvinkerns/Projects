@@ -52,9 +52,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, .btn:focus-vi
 .results th, .results td { padding: 5px 6px; text-align: left; border-bottom: 1px solid var(--line); }
 .results th { color: var(--muted); font-weight: 600; }
 .results .num { font-variant-numeric: tabular-nums; }
-.scoreboard { margin-top: 16px; }
-.scoreboard-head { display: flex; justify-content: space-between; align-items: center; }
-.scoreboard-head h2 { margin: 0; font-size: 16px; }
+.scoreboard-dialog { max-width: 640px; }
+.dialog-actions { display: flex; gap: 6px; }
+.scoreboard-note { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
 .scoreboard-list { margin: 8px 0 0; padding: 0; list-style: none; }
 .scoreboard-list li { display: grid; grid-template-columns: 2.6em minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 4px; border-bottom: 1px solid var(--line); }
 .scoreboard-list li.scoreboard-empty { display: block; color: var(--muted); }

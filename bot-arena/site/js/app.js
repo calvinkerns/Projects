@@ -152,7 +152,7 @@ function setRunning(controller) {
   running = controller;
   $('fight').disabled = Boolean(controller);
   $('submit-bot').disabled = Boolean(controller);
-  $('tourney').textContent = controller ? 'Cancel' : 'Tournament';
+  $('tourney').textContent = controller ? 'Cancel' : 'Practice vs all';
 }
 
 function describe(result, mySide, opponentName) {
@@ -226,7 +226,7 @@ async function tournament() {
   box.hidden = false;
   box.replaceChildren();
   const heading = document.createElement('h2');
-  heading.textContent = `Tournament: ${me.name} vs every bot, ${TOURNAMENT_SEEDS} maps each, ${arenaSize()}×${arenaSize()}, ${tickLimit()} ticks`;
+  heading.textContent = `Practice: ${me.name} vs every bot, ${TOURNAMENT_SEEDS} maps each (${arenaSize()}×${arenaSize()}, ${tickLimit()} ticks). Not saved.`;
   const progress = document.createElement('div');
   progress.className = 'progress';
   const bar = document.createElement('div');
@@ -280,13 +280,13 @@ async function tournament() {
         row.watch.disabled = false;
         row.watch.textContent = row.loss ? 'Watch a loss' : 'Watch';
         bar.style.width = `${(100 * done) / total}%`;
-        status(`Tournament: ${done} / ${total} matches…`);
+        status(`Practice: ${done} / ${total} matches…`);
       }
     }
     const kind = tally.w > tally.l ? 'win' : tally.w < tally.l ? 'loss' : '';
-    status(`Tournament done: ${tally.w} wins, ${tally.l} losses, ${tally.d} draws.`, kind);
+    status(`Practice done: ${tally.w} wins, ${tally.l} losses, ${tally.d} draws.`, kind);
   } catch (e) {
-    if (e.name === 'AbortError') status(`Tournament cancelled after ${done} matches.`);
+    if (e.name === 'AbortError') status(`Practice cancelled after ${done} matches.`);
     else status(`Something went wrong: ${e.message}`, 'error');
   } finally {
     setRunning(null);
@@ -520,6 +520,7 @@ function showGames(bot) {
 
 async function watchGame(bot, challenge, game) {
   if (running) return;
+  $('scoreboard-dialog').close();
   const opponent = communityBots.find((b) => b.serverId === challenge.opponentId);
   if (!opponent) return status(`${challenge.opponentName} has been deleted, so that game can't be replayed.`, 'error');
   const controller = new AbortController();
@@ -541,6 +542,11 @@ async function watchGame(bot, challenge, game) {
 for (const node of document.querySelectorAll('[data-ladder]')) node.textContent = String(LADDER[node.dataset.ladder]);
 $('scoreboard-help').addEventListener('click', () => $('scoreboard-help-dialog').showModal());
 $('scoreboard-help-close').addEventListener('click', () => $('scoreboard-help-dialog').close());
+$('scoreboard-open').addEventListener('click', () => {
+  $('scoreboard-dialog').showModal();
+  loadCommunity(); // pick up bots other people added since the page loaded
+});
+$('scoreboard-close').addEventListener('click', () => $('scoreboard-dialog').close());
 
 $('submit-bot').addEventListener('click', submitToArena);
 $('author').addEventListener('input', () => store.set('surge-lite.author', $('author').value));

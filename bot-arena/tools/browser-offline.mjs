@@ -79,14 +79,24 @@ const waitForStatus = async (pattern, ms = 90000) => {
   }
   return `(timed out) ${await statusText()}`;
 };
-const scoreboardRows = () => page.evaluate(() => [...document.querySelectorAll('#scoreboard li')].map((li) => li.innerText.replace(/\s+/g, ' ').trim()));
+// Open the scoreboard the way a visitor would, then read its rows.
+const scoreboardRows = async () => {
+  await page.evaluate(() => { if (!document.getElementById('scoreboard-dialog').open) document.getElementById('scoreboard-open').click(); });
+  await sleep(800);
+  return page.evaluate(() => [...document.querySelectorAll('#scoreboard li')].map((li) => li.innerText.replace(/\s+/g, ' ').trim()));
+};
 
 await page.goto(`${ORIGIN}/`);
 await sleep(2500);
 
+// The header has a Scoreboard button, and practice runs are clearly labelled.
+const labels = await page.evaluate(() => ({ scoreboard: !document.getElementById('scoreboard-open').hidden && document.getElementById('scoreboard-open').textContent, practice: document.getElementById('tourney').textContent }));
+check(labels.scoreboard === 'Scoreboard' && labels.practice === 'Practice vs all', `header shows a Scoreboard button and practice is labelled: ${JSON.stringify(labels)}`);
+
 // The scoreboard and the community opponent show up; the code shows up nowhere.
 let rows = await scoreboardRows();
 check(rows.length === 1 && rows[0].includes('#1') && rows[0].includes('Test Captain'), `scoreboard lists the #1 bot: ${JSON.stringify(rows)}`);
+await page.evaluate(() => document.getElementById('scoreboard-close').click());
 const groups = await page.evaluate(() => [...document.querySelectorAll('#opponent optgroup')].map((g) => [g.label, [...g.children].map((o) => o.textContent)]));
 check(groups.some(([label, opts]) => label === 'Community bots' && opts.includes('#1 Test Captain (by tester)')), `community bot listed as an opponent with its rank: ${JSON.stringify(groups)}`);
 const templates = await page.evaluate(() => [...document.querySelectorAll('#template option')].map((o) => o.value));
@@ -137,6 +147,7 @@ check(gameButtons.length === challenge.games.length, `a watch button for each ga
 await page.evaluate(() => document.querySelector('#scoreboard-games .challenge-row button').click());
 const watching = await waitForStatus(/Watching|Couldn't replay/);
 const watchedNames = await page.evaluate(() => window.__surge.replay?.names);
+check(!(await page.evaluate(() => document.getElementById('scoreboard-dialog').open)), 'the scoreboard closes so the game can be watched');
 check(watching.startsWith('Watching Offline Tester vs Test Captain') && watchedNames.includes('Offline Tester') && watchedNames.includes('Test Captain'), `game replays in the viewer: ${watching}`);
 check(!watching.includes('finished differently'), 'the replay finished the same way as the recorded game');
 const firstGame = challenge.games[0];
@@ -160,10 +171,10 @@ check(!env.DB.raw.prepare("SELECT 1 FROM bots WHERE name = 'Broken Bot'").get(),
 
 check(problems.length === 0, `no page errors or CSP violations${problems.length ? `: ${problems.join(' | ')}` : ''}`);
 if (shot) {
+  await scoreboardRows();
   await page.evaluate(() => {
     const row = [...document.querySelectorAll('#scoreboard li')].find((li) => li.innerText.includes('Offline Tester'));
     row.querySelector('button').click();
-    document.querySelector('.scoreboard').scrollIntoView();
   });
   await page.screenshot({ path: shot, fullPage: true });
 }
