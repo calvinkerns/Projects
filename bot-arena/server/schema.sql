@@ -4,7 +4,9 @@ CREATE TABLE IF NOT EXISTS bots (
   author TEXT NOT NULL DEFAULT '',
   code TEXT NOT NULL,          -- minified and scrambled in the submitter's browser
   created_at INTEGER NOT NULL,
-  ip_hash TEXT NOT NULL        -- salted hash, only used for rate limiting
+  ip_hash TEXT NOT NULL,       -- salted hash, only used for rate limiting
+  rank INTEGER,                -- 1-10 on the scoreboard, NULL if not on it
+  ladder TEXT NOT NULL DEFAULT '[]'  -- JSON: the scoreboard challenges it played
 );
 CREATE UNIQUE INDEX IF NOT EXISTS bots_name ON bots (name COLLATE NOCASE);
 CREATE INDEX IF NOT EXISTS bots_created ON bots (created_at DESC);

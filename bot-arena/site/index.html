@@ -67,6 +67,14 @@
     <div id="challenge" class="challenge" hidden></div>
     <div id="viewer"></div>
     <div id="results" class="results" hidden></div>
+    <div class="scoreboard" data-community hidden>
+      <div class="scoreboard-head">
+        <h2>Scoreboard</h2>
+        <button type="button" id="scoreboard-help" class="btn small">How it works</button>
+      </div>
+      <ol id="scoreboard" class="scoreboard-list"><li class="scoreboard-empty">Loading…</li></ol>
+      <div id="scoreboard-games" class="scoreboard-games" hidden></div>
+    </div>
   </section>
 </main>
 
@@ -117,6 +125,21 @@
     <li>If <code>bot()</code> throws, you don't move that tick and the error shows in the console.</li>
     <li>Bots run in a sandbox with no network access. <code>console.log</code> prints to the console panel.</li>
     <li data-community hidden><b>Submit to the arena</b> shares your bot with everyone who visits. Its code is minified and scrambled, so it isn't shown on the site, but it isn't encrypted.</li>
+  </ul>
+</dialog>
+
+<dialog id="scoreboard-help-dialog" class="docs" aria-labelledby="scoreboard-help-title">
+  <div class="docs-head">
+    <h2 id="scoreboard-help-title">How the scoreboard works</h2>
+    <button type="button" id="scoreboard-help-close" class="btn small">Close</button>
+  </div>
+  <ul>
+    <li>The scoreboard shows the top <span data-ladder="top"></span> bots that visitors have submitted.</li>
+    <li>When a bot is submitted, it challenges the <b>#1</b> bot. They play up to <span data-ladder="games"></span> games on a <span data-ladder="size"></span>×<span data-ladder="size"></span> arena with a <span data-ladder="maxTicks"></span>-tick limit, swapping sides every game.</li>
+    <li>Winning <b><span data-ladder="winsNeeded"></span> or more</b> of the <span data-ladder="games"></span> takes that spot, and every bot below it moves down one. A challenge stops as soon as its result is certain.</li>
+    <li>If it doesn't win, it challenges #2, then #3, and so on down the board.</li>
+    <li>If it can't beat anyone, it takes the next open spot while the board has room. On a full board it stays in the arena as an opponent, just not on the scoreboard.</li>
+    <li>Click <b>Games</b> next to any bot to see its challenges, then click a game to watch it.</li>
   </ul>
 </dialog>
 </body>

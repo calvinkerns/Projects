@@ -58,7 +58,7 @@ export async function minifyBot(source) {
   }
 }
 
-// Resolves to [{ id, name, author, blurb, source }], newest first. Bots that
+// Resolves to [{ id, serverId, name, author, blurb, source, rank, ladder }], newest first. Bots that
 // fail to unscramble are skipped rather than breaking the list.
 export async function fetchCommunityBots() {
   const res = await fetch(`${COMMUNITY_API}/bots`);
@@ -66,17 +66,26 @@ export async function fetchCommunityBots() {
   const bots = [];
   for (const b of await res.json()) {
     try {
-      bots.push({ id: `community:${b.id}`, name: String(b.name), author: String(b.author || ''), blurb: 'Submitted by a visitor.', source: unscramble(b.code) });
+      bots.push({
+        id: `community:${b.id}`,
+        serverId: b.id,
+        name: String(b.name),
+        author: String(b.author || ''),
+        blurb: 'Submitted by a visitor.',
+        source: unscramble(b.code),
+        rank: Number.isInteger(b.rank) ? b.rank : null,
+        ladder: Array.isArray(b.ladder) ? b.ladder : [],
+      });
     } catch { /* skip a damaged entry */ }
   }
   return bots;
 }
 
-export async function submitBot({ name, author, minified }) {
+export async function submitBot({ name, author, minified, placement }) {
   const res = await fetch(`${COMMUNITY_API}/bots`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, author, code: scramble(minified) }),
+    body: JSON.stringify({ name, author, code: scramble(minified), placement }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `the server said ${res.status}`);

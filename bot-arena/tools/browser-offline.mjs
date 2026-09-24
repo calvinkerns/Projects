@@ -27,15 +27,20 @@ const api = (method, path, body) => worker.fetch(new Request(`https://api.test${
   body: body && JSON.stringify(body),
 }), env);
 
-// One bot already in the arena before the page loads.
+// Captain is already #1 on the scoreboard before the page loads.
 const captain = await readFile(join(SITE, 'bots/captain.js'), 'utf8');
-await api('POST', '/bots', { name: 'Test Captain', author: 'tester', code: scramble((await minify(captain, MINIFY_OPTIONS)).code) });
+await api('POST', '/bots', {
+  name: 'Test Captain',
+  author: 'tester',
+  code: scramble((await minify(captain, MINIFY_OPTIONS)).code),
+  placement: { seen: [], rank: 1, challenges: [] },
+});
 
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new' });
 const page = await browser.newPage();
-await page.setViewport({ width: 1400, height: 900 });
+await page.setViewport({ width: 1400, height: 1400 });
 const problems = [];
-// Chrome logs every non-2xx response; the 409 from the duplicate-name test is expected.
+// Chrome logs every non-2xx response; a 409 from a duplicate-name test is expected.
 const expected = (text) => text.includes('favicon') || text.includes('status of 409');
 page.on('console', (m) => { if (m.type() === 'error' && !expected(m.text())) problems.push(m.text()); });
 page.on('pageerror', (e) => problems.push(e.message));
@@ -63,29 +68,41 @@ page.on('request', async (req) => {
 });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const statusText = () => page.evaluate(() => document.getElementById('status').textContent);
+// Wait until the status line matches, instead of guessing how long things take.
+const waitForStatus = async (pattern, ms = 90000) => {
+  const start = Date.now();
+  while (Date.now() - start < ms) {
+    const text = await statusText();
+    if (pattern.test(text)) return text;
+    await sleep(250);
+  }
+  return `(timed out) ${await statusText()}`;
+};
+const scoreboardRows = () => page.evaluate(() => [...document.querySelectorAll('#scoreboard li')].map((li) => li.innerText.replace(/\s+/g, ' ').trim()));
+
 await page.goto(`${ORIGIN}/`);
 await sleep(2500);
 
-// The community bot shows up as an opponent, and nowhere its code could be read.
+// The scoreboard and the community opponent show up; the code shows up nowhere.
+let rows = await scoreboardRows();
+check(rows.length === 1 && rows[0].includes('#1') && rows[0].includes('Test Captain'), `scoreboard lists the #1 bot: ${JSON.stringify(rows)}`);
 const groups = await page.evaluate(() => [...document.querySelectorAll('#opponent optgroup')].map((g) => [g.label, [...g.children].map((o) => o.textContent)]));
-check(groups.some(([label, opts]) => label === 'Community bots' && opts.includes('Test Captain (by tester)')), `community bot listed as an opponent: ${JSON.stringify(groups)}`);
+check(groups.some(([label, opts]) => label === 'Community bots' && opts.includes('#1 Test Captain (by tester)')), `community bot listed as an opponent with its rank: ${JSON.stringify(groups)}`);
 const templates = await page.evaluate(() => [...document.querySelectorAll('#template option')].map((o) => o.value));
 check(!templates.some((v) => v.startsWith('community:')), 'community bots are not offered as editor templates');
-check(await page.evaluate(() => !document.getElementById('submit-bot').hidden && !document.getElementById('author').closest('label').hidden), 'submit button and author field are shown');
 
-// Fight it: the scrambled, minified code has to run in the sandbox.
-await page.evaluate(() => {
-  const select = document.getElementById('opponent');
-  select.value = [...select.options].find((o) => o.textContent.startsWith('Test Captain')).value;
-  document.getElementById('size').value = '15';
-  document.getElementById('ticks').value = '400';
-  document.getElementById('fight').click();
+// The directions dialog opens and has the rules filled in.
+const help = await page.evaluate(() => {
+  document.getElementById('scoreboard-help').click();
+  const dialog = document.getElementById('scoreboard-help-dialog');
+  const text = dialog.innerText;
+  document.getElementById('scoreboard-help-close').click();
+  return { opened: text.length > 0, text };
 });
-await sleep(4000);
-const fought = await page.evaluate(() => ({ status: document.getElementById('status').textContent, names: window.__surge.replay?.names }));
-check(/^You (win|lose|forfeit)|^Draw/.test(fought.status) && fought.names?.[1] === 'Test Captain', `a match against the community bot finished: ${JSON.stringify(fought)}`);
+check(help.text.includes('up to 10 games') && help.text.includes('Winning 6 or more') && help.text.includes('21×21'), 'directions explain the rules with the real numbers');
 
-// Submit: minify, test-run, confirm, upload.
+// Submit: minify, test-run, confirm, challenge #1, upload.
 await page.evaluate(() => {
   window.confirm = () => true;
   const name = document.getElementById('bot-name');
@@ -94,34 +111,62 @@ await page.evaluate(() => {
   document.getElementById('author').value = 'calvin';
   document.getElementById('submit-bot').click();
 });
-await sleep(5000);
-const submitted = await page.evaluate(() => document.getElementById('status').textContent);
-check(submitted.includes('is in the arena'), `submission succeeded: ${submitted}`);
-const stored = env.DB.raw.prepare("SELECT code FROM bots WHERE name = 'Offline Tester'").get();
-check(Boolean(stored), 'submission saved in the database');
-check(stored && stored.code.startsWith('s1:') && !stored.code.includes('Starter bot') && !stored.code.includes('function bot'), 'what was stored is scrambled, not readable source');
-const selected = await page.evaluate(() => document.getElementById('opponent').selectedOptions[0]?.textContent);
-check(selected === 'Offline Tester (by calvin)', `new bot is selected as the opponent: ${selected}`);
+const sawProgress = await waitForStatus(/Challenging #1 Test Captain/, 30000);
+check(sawProgress.startsWith('Challenging #1 Test Captain'), `challenge progress is shown: ${sawProgress}`);
+const submitted = await waitForStatus(/entered the scoreboard|didn't make|Couldn't submit/);
+check(/entered the scoreboard at #[12]!/.test(submitted), `submission climbed the ladder: ${submitted}`);
 
-// Submitting the same name again is refused by the server, and the page says so.
+const stored = env.DB.raw.prepare("SELECT code, rank, ladder FROM bots WHERE name = 'Offline Tester'").get();
+check(Boolean(stored) && stored.code.startsWith('s1:') && !stored.code.includes('function bot'), 'stored code is scrambled, not readable source');
+const ladder = JSON.parse(stored?.ladder || '[]');
+const challenge = ladder[0];
+// A challenge ends at 6 wins or 5 non-wins, so it lasts between 5 and 10 games.
+check(ladder.length === 1 && challenge.opponentName === 'Test Captain' && challenge.games.length >= 5 && challenge.games.length <= 10, `played one challenge of 5-10 games against #1: ${challenge && challenge.games.length} games`);
+check(challenge.games.some((g) => g.side === 0) && challenge.games.some((g) => g.side === 1), 'sides were swapped between games');
+
+rows = await scoreboardRows();
+check(rows.length === 2 && rows.some((r) => r.includes('Offline Tester')), `scoreboard now has both bots: ${JSON.stringify(rows)}`);
+
+// Watch one of its challenge games.
+await page.evaluate(() => {
+  const row = [...document.querySelectorAll('#scoreboard li')].find((li) => li.innerText.includes('Offline Tester'));
+  row.querySelector('button').click();
+});
+const gameButtons = await page.evaluate(() => [...document.querySelectorAll('#scoreboard-games .challenge-row button')].map((b) => b.textContent));
+check(gameButtons.length === challenge.games.length, `a watch button for each game: ${JSON.stringify(gameButtons)}`);
+await page.evaluate(() => document.querySelector('#scoreboard-games .challenge-row button').click());
+const watching = await waitForStatus(/Watching|Couldn't replay/);
+const watchedNames = await page.evaluate(() => window.__surge.replay?.names);
+check(watching.startsWith('Watching Offline Tester vs Test Captain') && watchedNames.includes('Offline Tester') && watchedNames.includes('Test Captain'), `game replays in the viewer: ${watching}`);
+check(!watching.includes('finished differently'), 'the replay finished the same way as the recorded game');
+const firstGame = challenge.games[0];
+const replayedWinner = await page.evaluate(() => window.__surge.replay.result.winner);
+check(replayedWinner === firstGame.winner, `replayed winner matches the record (${replayedWinner} vs ${firstGame.winner})`);
+
+// Duplicate names are caught before any games are played.
 await page.evaluate(() => document.getElementById('submit-bot').click());
-await sleep(5000);
-const again = await page.evaluate(() => document.getElementById('status').textContent);
-check(again.includes('already exists'), `duplicate name reported: ${again}`);
+const again = await waitForStatus(/already in the arena|Couldn't submit/, 10000);
+check(again.includes('already in the arena'), `duplicate name caught up front: ${again}`);
 
-// A bot that crashes never gets submitted.
+// A bot with a syntax error never gets submitted.
 await page.evaluate(() => {
   document.getElementById('code').value = 'function bot(game) {\n  return [\n}';
   document.getElementById('bot-name').value = 'Broken Bot';
   document.getElementById('submit-bot').click();
 });
-await sleep(4000);
-const broken = await page.evaluate(() => document.getElementById('status').textContent);
+const broken = await waitForStatus(/Couldn't submit/, 20000);
 check(broken.includes('syntax error on line 3'), `broken bot refused with its line number: ${broken}`);
 check(!env.DB.raw.prepare("SELECT 1 FROM bots WHERE name = 'Broken Bot'").get(), 'broken bot not stored');
 
 check(problems.length === 0, `no page errors or CSP violations${problems.length ? `: ${problems.join(' | ')}` : ''}`);
-if (shot) await page.screenshot({ path: shot });
+if (shot) {
+  await page.evaluate(() => {
+    const row = [...document.querySelectorAll('#scoreboard li')].find((li) => li.innerText.includes('Offline Tester'));
+    row.querySelector('button').click();
+    document.querySelector('.scoreboard').scrollIntoView();
+  });
+  await page.screenshot({ path: shot, fullPage: true });
+}
 await browser.close();
 console.log(failures ? `\n${failures} failure(s)` : '\nall browser checks passed');
 process.exit(failures ? 1 : 0);
