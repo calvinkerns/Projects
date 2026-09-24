@@ -5,7 +5,7 @@
 // page as readable source. It isn't encrypted: someone determined could
 // recover the minified code from DevTools. That's an accepted trade-off.
 
-import { COMMUNITY_API } from './config.js';
+import { COMMUNITY_API } from './config.js?v=ea5fcfd1';
 
 export const NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 _.-]{0,23}$/;
 

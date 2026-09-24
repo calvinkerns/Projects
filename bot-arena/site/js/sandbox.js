@@ -6,7 +6,7 @@
 // Content-Security-Policy is inherited by the worker, so even a bot that undoes
 // the prelude can't reach other hosts.
 
-import { makeGame } from './botapi.js';
+import { makeGame } from './botapi.js?v=ea5fcfd1';
 
 const LOG_LINES_PER_TICK = 30;
 const LOG_LINES_PER_MATCH = 500;

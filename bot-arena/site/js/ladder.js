@@ -2,7 +2,7 @@
 // board. Each challenge is up to 10 games, swapping sides every game, and
 // winning 6 takes that spot. A challenge stops once its result is certain.
 
-import { runMatch } from './match.js';
+import { runMatch } from './match.js?v=ea5fcfd1';
 
 export const LADDER = Object.freeze({ size: 21, maxTicks: 800, games: 10, winsNeeded: 6, top: 10 });
 

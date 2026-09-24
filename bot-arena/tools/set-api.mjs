@@ -4,6 +4,7 @@
 // (the Content-Security-Policy in site/index.html).
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 
 let origin;
 try {
@@ -26,4 +27,5 @@ const replaceIn = (relative, pattern, replacement) => {
 
 replaceIn('../site/js/config.js', /export const COMMUNITY_API = '.*';/, `export const COMMUNITY_API = '${origin}';`);
 replaceIn('../site/index.html', /connect-src 'self'[^;]*;/, `connect-src 'self' ${origin};`);
+execFileSync(process.execPath, [new URL('stamp.mjs', import.meta.url).pathname], { stdio: 'inherit' });
 console.log(`The site now loads and submits community bots at ${origin}`);
