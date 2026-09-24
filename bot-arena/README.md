@@ -45,6 +45,12 @@ A submitted bot is minified in the submitter's browser (comments stripped, varia
 
 Until the API is deployed and `site/js/config.js` points at it, the community features stay hidden.
 
+### The scoreboard
+
+The site shows the top 10 community bots. When a bot is submitted, the submitter's browser has it challenge #1: up to 10 games on a 21×21 arena with an 800-tick limit, swapping sides each game. Winning 6 takes that spot and everyone below moves down one; otherwise it challenges #2, then #3, and so on. A challenge stops as soon as its result is certain. A bot that beats nobody takes the next open spot, or no spot on a full board.
+
+Only each game's seed and result are stored. Games are deterministic, so "watch" re-plays them on the spot from both bots' code. The server checks that submitted results are consistent with the current board, but since the games run in the submitter's browser, a determined cheater could fake a placement; delete it if that happens.
+
 ### Deploying the API (once)
 
 You need a free Cloudflare account. From `bot-arena/server`:
@@ -63,6 +69,17 @@ Then from `bot-arena`, point the site at it and push:
 ```
 node tools/set-api.mjs https://surge-api.<you>.workers.dev
 ```
+
+### Upgrading an existing deployment
+
+If the API was deployed before the scoreboard existed, add the scoreboard columns first, then deploy the new Worker. From `bot-arena/server`:
+
+```
+npx wrangler d1 execute surge --remote --file=migrations/0002_scoreboard.sql
+npx wrangler deploy
+```
+
+The oldest existing bot starts at #1.
 
 ### Moderating
 

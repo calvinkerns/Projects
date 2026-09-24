@@ -19,5 +19,18 @@ export function fakeD1() {
       };
       return bound;
     },
+    // Like D1, a batch runs in one transaction: all of it happens or none of it.
+    async batch(statements) {
+      db.exec('BEGIN');
+      try {
+        const out = [];
+        for (const s of statements) out.push(await s.run());
+        db.exec('COMMIT');
+        return out;
+      } catch (e) {
+        db.exec('ROLLBACK');
+        throw e;
+      }
+    },
   };
 }

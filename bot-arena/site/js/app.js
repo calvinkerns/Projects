@@ -4,6 +4,7 @@ import { RULES, MIN_TICKS, MAX_TICKS } from './engine.js';
 import { createViewer } from './viewer.js';
 import { runMatch, TICK_LIMIT_MS } from './match.js';
 import { communityEnabled, fetchCommunityBots, minifyBot, submitBot, NAME_PATTERN } from './community.js';
+import { climbLadder, replayGame, LADDER } from './ladder.js';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -137,7 +138,8 @@ function fillOpponents(selectedId) {
     for (const bot of bots) {
       const option = document.createElement('option');
       option.value = bot.id;
-      option.textContent = bot === challenger ? `⚔ ${bot.name}` : bot.author ? `${bot.name} (by ${bot.author})` : bot.name;
+      const place = bot.rank ? `#${bot.rank} ` : '';
+      option.textContent = bot === challenger ? `⚔ ${bot.name}` : `${place}${bot.name}${bot.author ? ` (by ${bot.author})` : ''}`;
       option.title = bot.blurb || '';
       group.append(option);
     }
@@ -381,6 +383,7 @@ async function loadCommunity() {
   try {
     communityBots = await fetchCommunityBots();
     fillOpponents($('opponent').value);
+    renderScoreboard();
   } catch (e) {
     status(`Couldn't load community bots: ${e.message}`, 'error');
   }
@@ -392,6 +395,9 @@ async function submitToArena() {
   const author = $('author').value.trim();
   if (!NAME_PATTERN.test(name)) return status('Bot names are 1-24 letters, numbers, spaces, dots, dashes or underscores.', 'error');
   if (author && !NAME_PATTERN.test(author)) return status('Your name can use letters, numbers, spaces, dots, dashes or underscores.', 'error');
+  if (communityBots.some((b) => b.name.toLowerCase() === name.toLowerCase())) {
+    return status(`A bot called "${name}" is already in the arena. Pick another name.`, 'error');
+  }
 
   const controller = new AbortController();
   setRunning(controller);
@@ -407,20 +413,134 @@ async function submitToArena() {
       signal: controller.signal,
     });
     if (replay.result.forfeit === 0) throw new Error(`your bot ${replay.result.reason}, so it wasn't submitted`);
-    if (!confirm(`Submit "${name}" to the arena? Everyone who visits will be able to fight it. Its code is scrambled so it isn't shown on the site, but it isn't encrypted.`)) {
+
+    const ranked = scoreboard();
+    const next = ranked.length
+      ? ` It will then challenge the scoreboard from #1 down, up to ${LADDER.games} games per bot, which can take a minute.`
+      : ' The scoreboard is empty, so it will go straight to #1.';
+    if (!confirm(`Submit "${name}" to the arena? Everyone who visits will be able to fight it. Its code is scrambled so it isn't shown on the site, but it isn't encrypted.${next}`)) {
       status('Not submitted.');
       return;
     }
-    const saved = await submitBot({ name, author, minified });
-    communityBots = [{ id: `community:${saved.id}`, name, author, blurb: 'Submitted by a visitor.', source: minified }, ...communityBots];
+
+    const placement = await climbLadder({ name, source: minified }, ranked, {
+      signal: controller.signal,
+      onProgress: ({ rank, opponent, challenge }) => {
+        const played = challenge.games.length;
+        status(`Challenging #${rank} ${opponent.name}: ${challenge.wins}–${played - challenge.wins} after ${played} of ${LADDER.games} games…`);
+      },
+    });
+    const saved = await submitBot({ name, author, minified, placement: { seen: ranked.map((b) => b.serverId), ...placement } });
+    await loadCommunity();
     fillOpponents(`community:${saved.id}`);
-    status(`"${name}" is in the arena. Anyone can pick it as an opponent now.`, 'win');
+    status(saved.rank ? `"${name}" entered the scoreboard at #${saved.rank}!` : `"${name}" is in the arena, but didn't make the top ${LADDER.top}.`, 'win');
   } catch (e) {
-    status(`Couldn't submit: ${e.message}`, 'error');
+    if (e.name === 'AbortError') status('Submission cancelled.');
+    else status(`Couldn't submit: ${e.message}`, 'error');
   } finally {
     setRunning(null);
   }
 }
+
+// ------------------------------------------------------------------ scoreboard
+
+const scoreboard = () => communityBots.filter((b) => b.rank).sort((a, b) => a.rank - b.rank);
+
+function span(className, text) {
+  const node = document.createElement('span');
+  node.className = className;
+  node.textContent = text;
+  return node;
+}
+
+function entryText(bot) {
+  const last = bot.ladder[bot.ladder.length - 1];
+  if (!last) return 'first on the board';
+  if (last.wins >= LADDER.winsNeeded) return `took the spot by beating ${last.opponentName} ${last.wins}–${last.losses + last.draws}`;
+  return 'took an open spot';
+}
+
+function renderScoreboard() {
+  const list = $('scoreboard');
+  list.replaceChildren();
+  $('scoreboard-games').hidden = true;
+  const ranked = scoreboard();
+  if (ranked.length === 0) {
+    const empty = document.createElement('li');
+    empty.className = 'scoreboard-empty';
+    empty.textContent = 'No bots on the scoreboard yet. Submit one to take #1.';
+    list.append(empty);
+    return;
+  }
+  for (const bot of ranked) {
+    const item = document.createElement('li');
+    const info = document.createElement('div');
+    info.className = 'scoreboard-info';
+    info.append(span('scoreboard-name', bot.name), ' ', span('scoreboard-by', bot.author ? `by ${bot.author}` : ''), span('scoreboard-how', entryText(bot)));
+    const games = document.createElement('button');
+    games.type = 'button';
+    games.className = 'btn small';
+    games.textContent = 'Games';
+    games.addEventListener('click', () => showGames(bot));
+    item.append(span('scoreboard-rank', `#${bot.rank}`), info, games);
+    list.append(item);
+  }
+}
+
+function showGames(bot) {
+  const panel = $('scoreboard-games');
+  panel.replaceChildren();
+  panel.hidden = false;
+  const heading = document.createElement('h3');
+  heading.textContent = `${bot.name}'s scoreboard challenges`;
+  panel.append(heading);
+  if (bot.ladder.length === 0) {
+    const note = document.createElement('p');
+    note.textContent = 'It was the first bot on the scoreboard, so it never had to challenge anyone.';
+    panel.append(note);
+  }
+  for (const challenge of bot.ladder) {
+    const row = document.createElement('div');
+    row.className = 'challenge-row';
+    const won = challenge.wins >= LADDER.winsNeeded;
+    row.append(span('challenge-label', `vs ${challenge.opponentName}: ${won ? 'won' : 'lost'} ${challenge.wins}–${challenge.losses + challenge.draws}`));
+    challenge.games.forEach((game, g) => {
+      const outcome = game.winner === -1 ? 'draw' : game.winner === game.side ? 'win' : 'loss';
+      const watch = document.createElement('button');
+      watch.type = 'button';
+      watch.className = `btn small game-${outcome}`;
+      watch.textContent = `${g + 1} ${outcome === 'win' ? 'W' : outcome === 'loss' ? 'L' : 'D'}`;
+      watch.title = `Game ${g + 1}: ${outcome}, ${game.reason} at tick ${game.tick}. Click to watch.`;
+      watch.addEventListener('click', () => watchGame(bot, challenge, game));
+      row.append(watch);
+    });
+    panel.append(row);
+  }
+}
+
+async function watchGame(bot, challenge, game) {
+  if (running) return;
+  const opponent = communityBots.find((b) => b.serverId === challenge.opponentId);
+  if (!opponent) return status(`${challenge.opponentName} has been deleted, so that game can't be replayed.`, 'error');
+  const controller = new AbortController();
+  setRunning(controller);
+  status('Rebuilding that game…');
+  try {
+    const replay = await replayGame(bot, opponent, game, controller.signal);
+    showReplay(replay);
+    const note = replay.result.winner === game.winner ? '' : ' It finished differently this time: bots can behave differently on different computers.';
+    status(`Watching ${bot.name} vs ${challenge.opponentName}.${note}`);
+    $('viewer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {
+    if (e.name !== 'AbortError') status(`Couldn't replay that game: ${e.message}`, 'error');
+  } finally {
+    setRunning(null);
+  }
+}
+
+for (const node of document.querySelectorAll('[data-ladder]')) node.textContent = String(LADDER[node.dataset.ladder]);
+$('scoreboard-help').addEventListener('click', () => $('scoreboard-help-dialog').showModal());
+$('scoreboard-help-close').addEventListener('click', () => $('scoreboard-help-dialog').close());
 
 $('submit-bot').addEventListener('click', submitToArena);
 $('author').addEventListener('input', () => store.set('surge-lite.author', $('author').value));

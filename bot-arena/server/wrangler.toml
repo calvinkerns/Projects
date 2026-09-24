@@ -9,4 +9,4 @@ ALLOWED_ORIGINS = "https://calvinkerns.github.io,http://localhost:8080"
 [[d1_databases]]
 binding = "DB"
 database_name = "surge"
-database_id = "REPLACE_WITH_YOUR_DATABASE_ID"
+database_id = "aa446a62-434f-4294-8fe1-107cdc770f95"
