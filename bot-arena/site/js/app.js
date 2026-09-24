@@ -1,10 +1,10 @@
 // Surge app: editor, matches, tournament, and share links.
 
-import { RULES, MIN_TICKS, MAX_TICKS } from './engine.js';
-import { createViewer } from './viewer.js';
-import { runMatch, TICK_LIMIT_MS } from './match.js';
-import { communityEnabled, fetchCommunityBots, minifyBot, submitBot, NAME_PATTERN } from './community.js';
-import { climbLadder, replayGame, LADDER } from './ladder.js';
+import { RULES, MIN_TICKS, MAX_TICKS } from './engine.js?v=ea5fcfd1';
+import { createViewer } from './viewer.js?v=ea5fcfd1';
+import { runMatch, TICK_LIMIT_MS } from './match.js?v=ea5fcfd1';
+import { communityEnabled, fetchCommunityBots, minifyBot, submitBot, NAME_PATTERN } from './community.js?v=ea5fcfd1';
+import { climbLadder, replayGame, LADDER } from './ladder.js?v=ea5fcfd1';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -562,11 +562,11 @@ async function start() {
   $('ticks').value = store.get('surge-lite.ticks') || String(RULES.maxTicks);
   tickLimit();
   $('seed').value = String(Math.floor(Math.random() * 1e6));
-  const demo = fetch('replays/demo.json').then((r) => r.json());
+  const demo = fetch('replays/demo.json', { cache: 'no-cache' }).then((r) => r.json());
 
-  const list = await (await fetch('bots/index.json')).json();
+  const list = await (await fetch('bots/index.json', { cache: 'no-cache' })).json();
   seedBots = await Promise.all(list.map(async (b) => ({
-    id: b.file, name: b.name, blurb: b.blurb, source: await (await fetch(`bots/${b.file}`)).text(),
+    id: b.file, name: b.name, blurb: b.blurb, source: await (await fetch(`bots/${b.file}`, { cache: 'no-cache' })).text(),
   })));
   for (const bot of seedBots) {
     const option = document.createElement('option');

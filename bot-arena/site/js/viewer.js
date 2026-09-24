@@ -1,6 +1,6 @@
 // Replay viewer: canvas board, HUD, timeline and controls for one Surge replay.
 
-import { WALL, buildReplay } from './engine.js';
+import { WALL, buildReplay } from './engine.js?v=ea5fcfd1';
 
 const RGB = [[255, 138, 61], [60, 200, 255]];
 const MASS_STEPS = [0, 3, 8, 20, 50, 120];

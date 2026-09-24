@@ -91,6 +91,10 @@ curl -X DELETE https://surge-api.<you>.workers.dev/bots/<id> \\
 
 One address can submit 5 bots an hour and 20 a day. Names must be unique, and a bot must pass a quick test match before it's uploaded.
 
+## Publishing changes
+
+After changing anything in `site/`, run `npm run stamp` before pushing. It gives every file the page loads a version in its address, so browsers never mix old cached files with new ones after an update. `npm test` fails if you forget.
+
 ## Dev tools
 
 ```
