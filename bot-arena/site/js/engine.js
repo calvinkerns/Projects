@@ -220,8 +220,7 @@ export function viewFor(state, p) {
 }
 
 // ---------------------------------------------------------------------------
-// Replays: the seed, the rules, and every move that happened. Replaying re-runs
-// the engine on those moves (never the bots), which re-validates each one.
+// Replays: seed, rules, and every move. Replaying re-runs the engine on the moves.
 
 export const encodeMove = (m) => (m ? m.from * 4 + m.dir : -1);
 export const decodeMove = (code) => (Number.isInteger(code) && code >= 0 ? { from: code >> 2, dir: code & 3 } : null);
@@ -236,9 +235,8 @@ export function recordTick(replay, executed) {
 
 const KEYFRAME_EVERY = 64;
 
-// Prepare a replay for viewing. Rather than keeping every frame (a 20000-tick
-// match on a big board would be hundreds of megabytes), it keeps a snapshot
-// every few dozen ticks and replays forward from the nearest one on demand.
+// Prepare a replay for viewing. Keeps a snapshot every KEYFRAME_EVERY ticks
+// and replays forward from the nearest one.
 export function buildReplay(replay, keyframeEvery = KEYFRAME_EVERY) {
   const moves = (replay.moves || []).map((pair) => [decodeMove(pair?.[0]), decodeMove(pair?.[1])]);
   const state = createMatch(replay.seed, replay.rules);

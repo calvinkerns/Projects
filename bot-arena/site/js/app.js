@@ -1,10 +1,10 @@
 // Surge app: editor, matches, tournament, and share links.
 
-import { RULES, MIN_TICKS, MAX_TICKS } from './engine.js?v=ea5fcfd1';
-import { createViewer } from './viewer.js?v=ea5fcfd1';
-import { runMatch, TICK_LIMIT_MS } from './match.js?v=ea5fcfd1';
-import { communityEnabled, fetchCommunityBots, minifyBot, submitBot, NAME_PATTERN } from './community.js?v=ea5fcfd1';
-import { climbLadder, replayGame, LADDER } from './ladder.js?v=ea5fcfd1';
+import { RULES, MIN_TICKS, MAX_TICKS } from './engine.js?v=f5617c9e';
+import { createViewer } from './viewer.js?v=f5617c9e';
+import { runMatch, TICK_LIMIT_MS } from './match.js?v=f5617c9e';
+import { communityEnabled, fetchCommunityBots, minifyBot, submitBot, NAME_PATTERN } from './community.js?v=f5617c9e';
+import { climbLadder, replayGame, LADDER } from './ladder.js?v=f5617c9e';
 
 const $ = (id) => document.getElementById(id);
 const store = {

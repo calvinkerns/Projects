@@ -52,12 +52,10 @@ class App {
             
             this.setupEventListeners();
 
-            // Bound once: `() => this.animate()` inside animate() allocated a new
-            // closure every single frame.
+            // bind once instead of every frame
             this.boundAnimate = () => this.animate();
 
-            // The Van Gogh room is the default scene; it streams in while the
-            // render loop is already running.
+            // default scene
             this.loadVanGoghRoom();
             this.animate();
         } catch (e) {
@@ -69,15 +67,13 @@ class App {
     handleResize() {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
-        // The projection depends on canvas aspect, so it has to be rebuilt here.
-        // Previously it stayed stale until the camera happened to move.
+        // projection depends on aspect ratio
         if (this.camera) {
             this.camera.updateMatrices();
         }
     }
 
-    // Single entry point for "new splat data". Packs and uploads the static
-    // texture once, then computes the first draw order.
+    // upload new splat data and compute the first draw order
     loadSplats(splats, mode) {
         if (!splats) return;
         this.splatGenerator.splats = splats;
@@ -200,7 +196,6 @@ class App {
         document.getElementById('loadVanGoghBtn').onclick = () => this.loadVanGoghRoom();
     }
 
-    // Used both by the Van Gogh button and by startup, since it is the default scene.
     async loadVanGoghRoom() {
         this.reinitializeCamera();
         const loadingOverlay = document.getElementById('loadingOverlay');
@@ -263,7 +258,6 @@ class App {
         const hadMovement = this.controls.updateMovement();
 
         if (this.animatestart && this.gaussianUpdater.count > 0) {
-            // hasViewChanged() already refreshes lastViewMatrix when it reports true.
             if (hadMovement || this.hasViewChanged() || this.forceUpdate) {
                 this.gaussianUpdater.updateOrder(this.camera);
                 this.forceUpdate = false;

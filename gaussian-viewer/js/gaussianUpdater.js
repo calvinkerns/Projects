@@ -1,13 +1,9 @@
-// Splat ordering + GPU upload.
-//
-// Static per-splat data (position / covariance / colour) is packed and uploaded
-// ONCE per scene in setSplats(). Per frame we only recompute the draw ORDER and
-// upload the index buffer -- the texture never changes when the camera moves.
+// Splat sorting + GPU upload. Splat data is uploaded once per scene,
+// only the draw order is updated each frame.
 
 const DEBUG = false;
 
-// Scratch views for float->half conversion. Hoisted to module scope: allocating
-// these per call was ~2.7M throwaway typed arrays per frame.
+// scratch buffers for float -> half conversion
 const HALF_F32 = new Float32Array(1);
 const HALF_I32 = new Int32Array(HALF_F32.buffer);
 
@@ -44,13 +40,10 @@ function packHalf2x16(x, y) {
     return (floatToHalf(x) | (floatToHalf(y) << 16)) >>> 0;
 }
 
-// Splats are bucketed by depth into 2^16 bins and counting-sorted. One pass,
-// no comparisons, no BigInt -- ~4ms for 341k splats vs ~135ms for the previous
-// 8-pass BigInt radix sort.
+// number of depth bins for the counting sort
 const DEPTH_BINS = 65536;
 
-// Must match the frustum margin in the vertex shader, so the CPU drops exactly
-// the splats the shader would have degenerate-culled (no visible change).
+// same margin as the vertex shader
 const CULL_MARGIN = 1.5;
 
 export class GaussianUpdater {
@@ -86,9 +79,7 @@ export class GaussianUpdater {
         this.visible = new Uint32Array(n);
         this.order = new Uint32Array(n);
 
-        // Texture layout must stay byte-identical to what the vertex shader
-        // decodes: texel (2*(i&0x3FF), i>>10) holds the centre, the next texel
-        // holds covariance + packed colour. That works out to a flat stride of 8.
+        // layout must match the vertex shader: position texel, then covariance + color texel
         const texwidth = 1024 * 2;
         const texheight = Math.ceil((2 * n) / texwidth);
         const texdata = new Uint32Array(texwidth * texheight * 4);
@@ -106,8 +97,7 @@ export class GaussianUpdater {
             texdata_f[8 * i + 1] = p[1];
             texdata_f[8 * i + 2] = p[2];
 
-            // Six unique terms of the symmetric 3x3 covariance, two per texel
-            // channel. Channel .z was previously unused padding.
+            // 6 covariance terms, packed 2 per channel
             const cov = splat.covariance;
             if (cov) {
                 texdata[8 * i + 4] = packHalf2x16(cov[0], cov[1]);   // 00, 01
@@ -126,7 +116,7 @@ export class GaussianUpdater {
         this.renderer.uploadSplatTexture(texdata, texwidth, texheight);
         this.renderer.ensureIndexCapacity(n);
 
-        // Start in submission order so something is on screen before the first sort.
+        // unsorted order until the first sort
         for (let i = 0; i < n; i++) this.order[i] = i;
         this.renderer.uploadOrder(this.order, n);
 
@@ -145,7 +135,7 @@ export class GaussianUpdater {
         const view = cam.viewMatrix;
         const proj = cam.projMatrix;
 
-        // viewProj = proj * view, written into a reused scratch (column-major).
+        // viewProj = proj * view
         const vp = this.viewProj;
         for (let c = 0; c < 4; c++) {
             const v0 = view[c * 4 + 0], v1 = view[c * 4 + 1];
@@ -160,7 +150,7 @@ export class GaussianUpdater {
         const depths = this.depths;
         const visible = this.visible;
 
-        // View-space z row, for a linear (and always positive in front) depth.
+        // view-space z row for depth
         const vz0 = view[2], vz1 = view[6], vz2 = view[10], vz3 = view[14];
 
         let visCount = 0;
@@ -182,8 +172,7 @@ export class GaussianUpdater {
             const cz = vp[2] * x + vp[6] * y + vp[10] * z + vp[14];
             if (cz < -limit || cz > limit) continue;
 
-            // Distance along the view axis, positive and increasing away from
-            // the camera. Linear, so it bins far better than NDC z did.
+            // linear depth, positive in front of the camera
             const d = -(vz0 * x + vz1 * y + vz2 * z + vz3);
 
             visible[visCount] = i;
@@ -198,8 +187,7 @@ export class GaussianUpdater {
             return;
         }
 
-        // Counting sort, ascending depth => NEAREST FIRST. That is the order the
-        // front-to-back "under" blend in setupGL() requires.
+        // counting sort, nearest first (needed for front-to-back blending)
         const span = maxDepth - minDepth;
         const scale = span > 0 ? (DEPTH_BINS - 1) / span : 0;
 
@@ -228,8 +216,7 @@ export class GaussianUpdater {
         this.renderer.uploadOrder(order, visCount);
     }
 
-    // Back-compat shim for the old signature. Re-packs the static texture only
-    // when the splat array actually changed identity.
+    // old api, only re-uploads if the splat array changed
     updateGaussians(viewProj, vertices, forceUpdate = false) {
         if (!vertices || vertices.length === 0) return;
         if (vertices !== this._lastSplats) {

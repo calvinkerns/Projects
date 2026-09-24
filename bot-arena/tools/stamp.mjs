@@ -1,6 +1,5 @@
-// Gives every file the page loads a version in its address (app.js?v=3fa9c21b),
-// so after an update browsers fetch a matching set of files instead of mixing
-// old cached ones with new ones. Run it after changing anything in site/:
+// Adds a version to every file the page loads (app.js?v=3fa9c21b) to avoid
+// stale caches. Run it after changing anything in site/:
 //   node tools/stamp.mjs           update the versions
 //   node tools/stamp.mjs --check   fail if they're out of date (npm test runs this)
 
@@ -20,8 +19,7 @@ const files = [
 
 const read = (f) => readFileSync(join(SITE, f), 'utf8');
 
-// One version for the whole site, ignoring the versions themselves: any change
-// anywhere gives every file a new address.
+// one hash for the whole site, ignoring the versions themselves
 const hash = createHash('sha256');
 for (const f of files) hash.update(`${f}\n${read(f).replace(STAMP, '')}\n`);
 const version = hash.digest('hex').slice(0, 8);

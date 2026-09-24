@@ -78,8 +78,7 @@ const Intro = () => {
     const TICK_MS = 28;
     const SETTLE_MS = 1000;
 
-    // Spaces are left intact so the string wraps the same way mid-scramble
-    // as it does once decoded — otherwise it becomes one unbreakable token.
+    // keep spaces so the text wraps the same while scrambling
     const scramble = (target, settled) =>
       target
         .split('')
@@ -90,9 +89,7 @@ const Intro = () => {
         })
         .join('');
 
-    // The step scales with the string's length, so every line settles in
-    // SETTLE_MS regardless of how long it is — the tagline is four times
-    // the name and used to take four times as long to decode.
+    // step scales with length so every line finishes in SETTLE_MS
     const run = (target, setText) => {
       const step = target.length / (SETTLE_MS / TICK_MS);
       let settled = 0;
@@ -125,7 +122,7 @@ const Intro = () => {
         <div className="hero">
           <p className="heroEyebrow">Bellingham, Washington</p>
 
-          {/* aria-label carries the real name — the scramble is decorative */}
+          {/* aria-label has the real name */}
           <h1 className="heroName" aria-label={FINAL_NAME}>
             <span aria-hidden="true">{nameText}</span>
           </h1>

@@ -1,11 +1,7 @@
-// Community bots: bots other people submitted, loaded from the Surge API.
-//
-// A submitted bot is minified in the submitter's browser (comments stripped,
-// variables renamed) and then scrambled, so its code never appears on the
-// page as readable source. It isn't encrypted: someone determined could
-// recover the minified code from DevTools. That's an accepted trade-off.
+// Community bots loaded from the Surge API.
+// Bots are minified + scrambled before upload (not encrypted).
 
-import { COMMUNITY_API } from './config.js?v=ea5fcfd1';
+import { COMMUNITY_API } from './config.js?v=f5617c9e';
 
 export const NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 _.-]{0,23}$/;
 

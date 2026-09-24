@@ -4,8 +4,7 @@ import viewer from '../assets/viewer.png';
 import botarena from '../assets/botarena.png';
 import microshell from '../assets/micro_image.png';
 
-/* Proficiency is expressed as four named bands rather than a percentage.
-   "80% at Java" invites an argument; "use it daily" doesn't. */
+/* skill proficiency levels */
 export const LEVELS = {
   4: { label: 'Go-to' },
   3: { label: 'Proficient' },
@@ -51,8 +50,7 @@ export const SKILL_GROUPS = [
   },
 ];
 
-/* `stack` holds the skills from the index above; `tags` are the extra
-   project-specific technologies. Both render as chips, stack first. */
+/* stack = skills from above, tags = other project tech */
 export const PROJECTS = [
   {
     name: 'VerbaSlide',

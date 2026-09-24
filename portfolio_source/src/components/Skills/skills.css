@@ -79,8 +79,7 @@
     border: none;
 }
 
-/* Brand icons carry their own colours and several are near-black, so each
-   sits on a light tile rather than directly on the dark ground. */
+/* light tile so dark icons are visible */
 .skillMark {
     display: grid;
     place-items: center;
@@ -113,7 +112,7 @@
     white-space: nowrap;
 }
 
-/* Leader dots, the way a table of contents runs a row out to its page number */
+/* leader dots */
 .skillLeader {
     flex: 1;
     min-width: 0.75rem;

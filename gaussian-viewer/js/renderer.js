@@ -1,7 +1,5 @@
 
-// Flip to true to re-enable the verbose per-call logging and the GL error /
-// buffer-size queries. Those queries are synchronous: they flush the GL command
-// queue and stall the CPU on the GPU, so they must stay out of the frame loop.
+// extra logging + GL error checks (slow)
 const DEBUG = false;
 
 export class Renderer {
@@ -43,8 +41,7 @@ export class Renderer {
         this.gl.disable(this.gl.DEPTH_TEST);
         this.gl.enable(this.gl.BLEND);
 
-        // Front-to-back "under" blend with premultiplied source. This requires
-        // splats to be submitted NEAREST FIRST -- see GaussianUpdater.updateOrder.
+        // front-to-back blending, splats must be sorted nearest first
         this.gl.blendFuncSeparate(
             this.gl.ONE_MINUS_DST_ALPHA,  // src RGB
             this.gl.ONE,                  // dst RGB
@@ -75,9 +72,7 @@ export class Renderer {
         this.gl.enableVertexAttribArray(positionLocation);
         this.gl.vertexAttribPointer(positionLocation, 2, this.gl.FLOAT, false, 0, 0);
     
-        // Setup index buffer for instancing. Sized once via ensureIndexCapacity()
-        // and then refilled with bufferSubData, so the per-frame order upload
-        // never reallocates the GPU buffer.
+        // Setup index buffer for instancing
         this.indexBuffer = this.gl.createBuffer();
         this.indexCapacityBytes = 0;
         const indexLocation = this.gl.getAttribLocation(this.program, "index");
@@ -95,8 +90,7 @@ export class Renderer {
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
     }
 
-    // Uploads the static per-splat data. Called once per scene load -- this used
-    // to run every frame and re-upload ~10.4 MB for the van Gogh scene.
+    // upload splat data, once per scene
     uploadSplatTexture(data, width, height) {
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
         this.gl.texImage2D(
@@ -120,8 +114,7 @@ export class Renderer {
         this.indexCapacityBytes = bytes;
     }
 
-    // Per-frame draw order. Writes into the existing buffer store and takes the
-    // count explicitly, so the caller does not have to slice its scratch array.
+    // upload draw order each frame
     uploadOrder(indices, count) {
         if (!indices) {
             console.error('uploadOrder: received null indices');
@@ -141,7 +134,7 @@ export class Renderer {
         this.splatCount = count;
     }
 
-    // Kept so older call sites / the unused tiled updater keep working.
+    // used by the tiled updater
     updateTextureData(data, width, height) {
         this.uploadSplatTexture(data, width, height);
     }
@@ -324,17 +317,11 @@ void main() {
         covB.x, covC.x, covC.y
     );
 
-    // EWA splatting:  Sigma_2D = J * (W * Sigma_3D * W^T) * J^T
-    //
-    // W is the rotation part of the view matrix. It was missing entirely, and
-    // the z terms of Sigma_3D were never stored at all -- so a splat's screen
-    // shape did not depend on the camera, and anything flat or elongated stayed
-    // a sliver from every angle.
+    // EWA splatting: Sigma_2D = J * (W * Sigma_3D * W^T) * J^T
     mat3 W = mat3(view);
     mat3 covView = W * covariance * transpose(W);
 
-    // Jacobian of the view-space -> screen projection, column-major.
-    // viewPos.z is negative in front of the camera.
+    // projection jacobian
     float zInv = 1.0 / viewPos.z;
     float zInv2 = zInv * zInv;
     mat3 J = mat3(
