@@ -7,7 +7,12 @@
     "test": "node tools/stamp.mjs --check && node tools/test.mjs && node --no-warnings server/test.mjs && node tools/test-community.mjs",
     "tournament": "node tools/tournament.mjs site/bots/*.js",
     "test:browser": "node --no-warnings tools/browser-offline.mjs",
-    "stamp": "node tools/stamp.mjs"
+    "stamp": "node tools/stamp.mjs",
+    "ml:fetch": "node ml/fetch-community.mjs",
+    "ml:selfplay": "node ml/selfplay.mjs",
+    "ml:features": "node ml/features.mjs",
+    "ml:tune": "node ml/tune.mjs",
+    "ml:settings": "node ml/settings.mjs"
   },
   "devDependencies": {
     "puppeteer-core": "^25.10.0",
