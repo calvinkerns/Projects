@@ -1,6 +1,6 @@
 // Tunes a bot's `const P = { ... }` numbers by evolution: each generation tries
 // a few mutated copies against the opponent pool on shared seeds, and keeps a
-// mutant only if it beats the current best. Progress is saved after every
+// mutant only if it beats the current best twice, the second time on fresh seeds. Progress is saved after every
 // generation, so it can be stopped and resumed.
 //   node ml/tune.mjs ml/private/apex.js [--gens 20] [--kids 6] [--seeds 12] [--size 21] [--ticks 800]
 
@@ -55,8 +55,15 @@ for (let gen = 1; gen <= args.gens; gen++) {
   const candidates = [best, ...Array.from({ length: args.kids }, () => mutate(best))];
   const scores = await evaluate(candidates, seeds);
   const top = scores.indexOf(Math.max(...scores));
-  console.log(`gen ${gen}: best so far ${pct(scores[0])}, top mutant ${pct(Math.max(...scores.slice(1)))}${top > 0 ? '  -> new best' : ''}`);
-  if (top > 0) best = candidates[top];
+  let note = '';
+  if (top > 0) {
+    // A lucky run is easy to mistake for progress: replay on fresh seeds before switching.
+    const fresh = Array.from({ length: args.seeds }, () => rand());
+    const [again, mutant] = await evaluate([best, candidates[top]], fresh);
+    if (mutant > again) { best = candidates[top]; note = `  -> new best (confirmed ${pct(mutant)} vs ${pct(again)})`; }
+    else note = `  -> not confirmed (${pct(mutant)} vs ${pct(again)})`;
+  }
+  console.log(`gen ${gen}: best so far ${pct(scores[0])}, top mutant ${pct(Math.max(...scores.slice(1)))}${note}`);
   writeFileSync(saveTo, JSON.stringify({ params: best, score: scores[top], gen }, null, 2));
 }
 console.log(`best params saved to ${saveTo}:\n${JSON.stringify(best)}`);
