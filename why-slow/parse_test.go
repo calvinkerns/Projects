@@ -1,0 +1,117 @@
+package main
+
+import (
+	"testing"
+	"time"
+)
+
+func TestParsePsLine(t *testing.T) {
+	line := "36749  1102   6.9 379904    14:52:40 /Applications/Utilities/Adobe Creative Cloud/ACC/Creative Cloud.app/Contents/Frameworks/Creative Cloud UI Helper (Renderer).app/Contents/MacOS/Creative Cloud UI Helper (Renderer)"
+	p, ok := parsePsLine(line)
+	if !ok {
+		t.Fatal("did not parse")
+	}
+	if p.PID != 36749 || p.PPID != 1102 || p.CPU != 6.9 || p.RSS != 379904*1024 {
+		t.Errorf("numbers wrong: %+v", p)
+	}
+	if p.Name != "Creative Cloud UI Helper (Renderer)" || p.App != "Creative Cloud" {
+		t.Errorf("name %q app %q", p.Name, p.App)
+	}
+	if e := lookup(p); e == nil || e.Title != "Adobe Creative Cloud" {
+		t.Errorf("lookup = %v", e)
+	}
+}
+
+func TestParseEtime(t *testing.T) {
+	for in, want := range map[string]time.Duration{
+		"00:33":       33 * time.Second,
+		"01:20:15":    time.Hour + 20*time.Minute + 15*time.Second,
+		"06-15:23:38": 6*24*time.Hour + 15*time.Hour + 23*time.Minute + 38*time.Second,
+	} {
+		if got := parseEtime(in); got != want {
+			t.Errorf("parseEtime(%q) = %v, want %v", in, got, want)
+		}
+	}
+}
+
+func TestGroupingSpotlightAndInterpreters(t *testing.T) {
+	procs := []Proc{
+		{PID: 1, Name: "mds", CPU: 10},
+		{PID: 2, Name: "mdworker_shared", CPU: 20},
+		{PID: 3, Name: "mds_stores", CPU: 5},
+		{PID: 4, Name: "node", CPU: 1},
+		{PID: 5, Name: "node", CPU: 1},
+		{PID: 6, Name: "python3.9", CPU: 1},
+	}
+	groups := groupProcs(procs)
+	if len(groups) != 4 {
+		t.Fatalf("got %d groups, want 4 (Spotlight, node, node, python)", len(groups))
+	}
+	if groups[0].Title != "Spotlight" || groups[0].CPU != 35 {
+		t.Errorf("spotlight group = %+v", groups[0])
+	}
+	if groups[3].Entry == nil || !groups[3].Entry.Interpreter {
+		t.Errorf("python3.9 should match the python interpreter entry")
+	}
+}
+
+func TestParseListeners(t *testing.T) {
+	out := "p505\nf8\nn*:52489\nf9\nn*:52489\np591\nf8\nn*:7000\np853\nf36\nn127.0.0.1:49166\nf37\nn[::1]:49166\n"
+	got := parseListeners(out)
+	want := []Listener{{591, 7000, true}, {853, 49166, false}, {505, 52489, true}}
+	if len(got) != len(want) {
+		t.Fatalf("got %+v", got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("listener %d = %+v, want %+v", i, got[i], want[i])
+		}
+	}
+}
+
+func TestParseSysctl(t *testing.T) {
+	if l := parseLoad("{ 7.71 4.55 3.26 }"); l != [3]float64{7.71, 4.55, 3.26} {
+		t.Errorf("load = %v", l)
+	}
+	total, used := parseSwap("total = 3072.00M  used = 1592.31M  free = 1479.69M  (encrypted)")
+	if total != 3072<<20 || used/(1<<20) != 1592 {
+		t.Errorf("swap total %d used %d", total, used)
+	}
+}
+
+func TestLaunchItemNaming(t *testing.T) {
+	cisco := LaunchItem{
+		Label:   "com.cisco.anyconnect.gui",
+		Program: "/usr/bin/open",
+		Args:    []string{"/usr/bin/open", "-a", "/opt/cisco/anyconnect/Cisco AnyConnect Secure Mobility Client.app"},
+	}
+	if v := vendorOf(cisco); v != "Cisco" {
+		t.Errorf("vendor = %q", v)
+	}
+	if p := purpose(cisco); p != "Cisco AnyConnect Secure Mobility Client" {
+		t.Errorf("purpose = %q", p)
+	}
+
+	ags := LaunchItem{
+		Label:   "Adobe_Genuine_Software_Integrity_Service",
+		Program: "/Library/Application Support/Adobe/AdobeGCClient/AGSService",
+	}
+	if v := vendorOf(ags); v != "Adobe" {
+		t.Errorf("vendor from path = %q", v)
+	}
+	if v := vendorOf(LaunchItem{Label: "homebrew.mxcl.postgresql@16"}); v != "Homebrew services" {
+		t.Errorf("brew vendor = %q", v)
+	}
+	if p := purpose(LaunchItem{Label: "homebrew.mxcl.redis"}); p != "brew service: redis" {
+		t.Errorf("brew purpose = %q", p)
+	}
+}
+
+func TestKeepAlive(t *testing.T) {
+	if !keepAlive(true) || keepAlive(false) || keepAlive(nil) {
+		t.Error("bool forms")
+	}
+	if !keepAlive(map[string]any{"SuccessfulExit": false}) {
+		t.Error("dictionary form means conditionally kept alive")
+	}
+}
