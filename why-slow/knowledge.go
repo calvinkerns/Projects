@@ -24,6 +24,7 @@ type Entry struct {
 	What        string   // what it is
 	Why         string   // why it might be busy
 	Tip         string   // what to do about it
+	Free        string   // how to get its memory back, when not "Quitting <Title>"
 	Verdict     Verdict
 	Interpreter bool // runs someone else's code; show the command line
 }
@@ -115,7 +116,7 @@ var knowledge = []Entry{
 	},
 	{
 		Title:   "Crash reporting",
-		Names:   []string{"ReportCrash", "spindump", "diagnosticd"},
+		Names:   []string{"ReportCrash", "ReportMemoryException", "spindump", "diagnosticd"},
 		What:    "macOS writing a report about something that just crashed or froze.",
 		Why:     "Only busy right after a crash or hang; finishes within a minute or so.",
 		Verdict: Wait,
@@ -165,6 +166,7 @@ var knowledge = []Entry{
 		What:    "Each Safari tab, and each web view inside apps like Mail, runs in its own WebContent process.",
 		Why:     "A heavy page: video, a big web app, ads, or runaway JavaScript.",
 		Tip:     "Activity Monitor names the page behind each WebContent process, so you can close that tab.",
+		Free:    "Closing heavy Safari tabs",
 		Verdict: Quit,
 	},
 	{

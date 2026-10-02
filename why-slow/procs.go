@@ -155,6 +155,14 @@ func (g *Group) What() string {
 	return what
 }
 
+// FreeAction is how to get back the memory this group is using.
+func (g *Group) FreeAction() string {
+	if g.Entry != nil && g.Entry.Free != "" {
+		return g.Entry.Free
+	}
+	return "Quitting " + g.Title
+}
+
 func (g *Group) Verdict() Verdict {
 	if g.Entry != nil {
 		return g.Entry.Verdict
@@ -183,6 +191,19 @@ func procArgs(pid int) string {
 		return ""
 	}
 	return strings.TrimSpace(out)
+}
+
+// commandLine describes what an interpreter is actually running and where.
+func commandLine(p Proc) string {
+	args := procArgs(p.PID)
+	if args == "" {
+		return ""
+	}
+	s := "`" + clip(tildify(args), 60) + "`"
+	if cwd := procCwd(p.PID); cwd != "" && cwd != "/" {
+		s += " in " + tildify(cwd)
+	}
+	return s
 }
 
 // procCwd is the directory a process was started in, which usually names the
