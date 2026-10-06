@@ -80,7 +80,7 @@ struct LoginView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top) {
-                    Text("Background jobs that apps installed so they can run without being opened: updaters, sync services, VPN helpers and servers. Turn them off per company in System Settings.")
+                    Text("Background jobs that apps have installed: updaters, sync services, VPN helpers and servers. A green dot means it's running right now. Switching a company off in Login Items settings stops its jobs from starting, but they stay listed here because the app leaves them installed.")
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 16)
                     Button("Open Login Items Settings…") { store.openLoginItemsSettings() }

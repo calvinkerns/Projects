@@ -46,8 +46,9 @@ you press Ctrl-C it prints the biggest CPU spikes it saw and when they happened.
 
 `why-slow login` lists the launch agents and daemons that apps install so they can run without
 being opened (updaters, sync services, VPN helpers, database servers), grouped by company. That
-matches how System Settings → General → Login Items & Extensions lets you switch them off. Each
-group shows how much memory it is using right now:
+matches how System Settings → General → Login Items & Extensions lets you switch them off. Jobs
+you've switched off there are still listed, since the app leaves them installed, but they won't start;
+the ● marks what's actually running. Each group shows how much memory it is using right now:
 
 ```
   Adobe               5 item(s) · 2 running · 299 MB

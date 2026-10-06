@@ -308,9 +308,10 @@ func login() error {
 			fmt.Printf("    %s %s %s %s\n", dot, pad(it.When, 14), pad(clip(purpose(it)+scope, 40), 40), dim(it.Label))
 		}
 	}
-	fmt.Printf("\n%s\n%s\n%s\n",
+	fmt.Printf("\n%s\n%s\n%s\n%s\n",
 		dim("● running now  ○ installed, not running"),
 		dim("Turn these off per company in System Settings → General → Login Items & Extensions → Allow in the Background."),
+		dim("Ones you've turned off there still show here (the files stay installed), but won't start."),
 		dim("Brew services: brew services stop <name>. Uninstalling the app usually removes its items too."))
 	return nil
 }
