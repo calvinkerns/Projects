@@ -59,7 +59,7 @@ func TestDiagnoseLowMemory(t *testing.T) {
 		{PID: 21, Name: "WindowServer", RSS: 1 << 30},
 	})
 	status, fs := diagnose(s, groups)
-	if status != "Busy" || len(fs) != 1 || fs[0].Title != "Memory is tight: 15% free." {
+	if status != "Busy" || len(fs) != 1 || fs[0].Title != "Memory is tight: 85% used." {
 		t.Fatalf("status %q, findings %s", status, titles(fs))
 	}
 	body := strings.Join(fs[0].Lines, "\n")
@@ -139,7 +139,7 @@ func TestDiagnoseBusyGPU(t *testing.T) {
 	s := calmSystem()
 	s.GPU = 95 // a video export: the CPU is quiet, the graphics chip isn't
 	status, fs := diagnose(s, nil)
-	if status != "Busy" || len(fs) != 1 || fs[0].Title != "Your graphics chip is 95% busy." {
+	if status != "Busy" || len(fs) != 1 || fs[0].Title != "Your graphics chip is 95% used." {
 		t.Errorf("status %q, findings %s", status, titles(fs))
 	}
 }

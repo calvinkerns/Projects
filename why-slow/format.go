@@ -81,6 +81,14 @@ func totalCPU(groups []*Group, ncpu int) float64 {
 	return min(sum/float64(max(ncpu, 1)), 100)
 }
 
+// usedPct is part as a whole percentage of total.
+func usedPct(part, total uint64) int {
+	if total == 0 {
+		return 0
+	}
+	return int(float64(part) / float64(total) * 100)
+}
+
 func human(b uint64) string {
 	switch {
 	case b >= 1<<30:

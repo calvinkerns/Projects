@@ -4,7 +4,7 @@ Activity Monitor tells you *what* is running. `why-slow` tells you *why*, and wh
 
 ```
 $ why-slow
-Busy  CPU 74% used · load 7.7 on 10 cores · 16.0 GB RAM, 50% free · swap 1.6 GB · 89.8 GB disk free
+Busy  CPU 74% used · load 7.7 on 10 cores · GPU 6% used · memory 50% used of 16.0 GB · swap 1.6 GB used · disk 370.6 GB used of 460.4 GB
 
 ▶ Spotlight is using 55% of your CPU across 9 processes.
   Spotlight, indexing your files so search works.

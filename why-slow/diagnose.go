@@ -46,7 +46,7 @@ func diagnose(s System, groups []*Group) (status string, fs []Finding) {
 
 	if s.GPU >= gpuBusy {
 		fs = append(fs, Finding{
-			Title: fmt.Sprintf("Your graphics chip is %d%% busy.", s.GPU),
+			Title: fmt.Sprintf("Your graphics chip is %d%% used.", s.GPU),
 			Lines: []string{
 				"Video playback and editing, exports, games, 3D and screen recording run on the graphics chip, not the CPU, so they won't show up much in the CPU list.",
 				"macOS doesn't say which app is using it; it's usually the one you're working in. Pausing the export or game, or closing video tabs, frees it up.",
@@ -63,7 +63,7 @@ func diagnose(s System, groups []*Group) (status string, fs []Finding) {
 
 	if s.DiskTotal > 0 && (s.DiskFree < s.DiskTotal/10 || s.DiskFree < 10<<30) {
 		fs = append(fs, Finding{
-			Title: fmt.Sprintf("Your disk is nearly full: %s free.", human(s.DiskFree)),
+			Title: fmt.Sprintf("Your disk is nearly full: %d%% used, %s left.", usedPct(s.DiskTotal-s.DiskFree, s.DiskTotal), human(s.DiskFree)),
 			Lines: []string{
 				"macOS needs free space for swap, updates and caches; below about 10% free everything gets slower.",
 				"System Settings → General → Storage shows what's taking the space.",
@@ -138,7 +138,7 @@ func orphaned(g *Group) bool {
 func memoryFinding(s System, groups []*Group, lowMem bool) Finding {
 	var f Finding
 	if lowMem {
-		f.Title = fmt.Sprintf("Memory is tight: %d%% free.", s.MemFreePct)
+		f.Title = fmt.Sprintf("Memory is tight: %d%% used.", 100-s.MemFreePct)
 	} else {
 		f.Title = fmt.Sprintf("%s has spilled into swap.", human(s.SwapUsed))
 	}

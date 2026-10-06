@@ -22,16 +22,16 @@ func printOverview(sys System, groups []*Group, all bool) {
 		fmt.Sprintf("load %.1f on %d cores", sys.Load[0], sys.NCPU),
 	}
 	if sys.GPU >= 0 {
-		parts = append(parts, fmt.Sprintf("GPU %d%% busy", sys.GPU))
+		parts = append(parts, fmt.Sprintf("GPU %d%% used", sys.GPU))
 	}
 	if sys.MemFreePct >= 0 {
-		parts = append(parts, fmt.Sprintf("%s RAM, %d%% free", human(sys.MemTotal), sys.MemFreePct))
+		parts = append(parts, fmt.Sprintf("memory %d%% used of %s", 100-sys.MemFreePct, human(sys.MemTotal)))
 	}
 	if sys.SwapTotal > 0 {
-		parts = append(parts, fmt.Sprintf("swap %s", human(sys.SwapUsed)))
+		parts = append(parts, fmt.Sprintf("swap %s used", human(sys.SwapUsed)))
 	}
 	if sys.DiskTotal > 0 {
-		parts = append(parts, fmt.Sprintf("%s disk free", human(sys.DiskFree)))
+		parts = append(parts, fmt.Sprintf("disk %s used of %s", human(sys.DiskTotal-sys.DiskFree), human(sys.DiskTotal)))
 	}
 
 	status, findings := diagnose(sys, groups)

@@ -126,23 +126,23 @@ struct StatTiles: View {
             // figure doesn't include. Same threshold as the CLI's diagnosis.
             if system.gpuUsed >= 0 {
                 StatTile(title: "GPU", icon: "square.stack.3d.up",
-                         value: "\(system.gpuUsed)% busy",
+                         value: "\(system.gpuUsed)% used",
                          detail: "graphics chip",
                          fraction: Double(system.gpuUsed) / 100,
                          warn: system.gpuUsed >= 80)
             }
             StatTile(title: "Memory", icon: "memorychip",
-                     value: system.memFreePct >= 0 ? "\(system.memFreePct)% free" : "?",
+                     value: system.memFreePct >= 0 ? "\(100 - system.memFreePct)% used" : "?",
                      detail: "of \(bytes(system.memTotal))",
                      fraction: memUsed,
                      warn: lowMem)
             StatTile(title: "Swap", icon: "arrow.left.arrow.right",
-                     value: bytes(system.swapUsed),
+                     value: "\(bytes(system.swapUsed)) used",
                      detail: "memory moved to disk",
                      fraction: system.swapTotal > 0 ? Double(system.swapUsed) / Double(system.swapTotal) : 0,
                      warn: lowMem && system.swapUsed > 1 << 30)
             StatTile(title: "Disk", icon: "internaldrive",
-                     value: "\(bytes(system.diskFree)) free",
+                     value: "\(bytes(system.diskTotal - system.diskFree)) used",
                      detail: "of \(bytes(system.diskTotal))",
                      fraction: system.diskTotal > 0 ? 1 - Double(system.diskFree) / Double(system.diskTotal) : 0,
                      warn: diskLow)
