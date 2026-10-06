@@ -91,11 +91,27 @@ func cpuFinding(g *Group) Finding {
 		if top.CPU >= 80 && top.Elapsed > time.Hour {
 			f.Lines = append(f.Lines, fmt.Sprintf("It has been running for %s. If you don't recognise it, it may be stuck (kill %d).", ago(top.Elapsed), top.PID))
 		}
+		if n := len(g.Procs); n >= 3 && orphaned(g) {
+			f.Lines = append(f.Lines, fmt.Sprintf(
+				"All %d copies have outlived the program that started them, so nothing is going to stop them. Stop them all with: pkill -f '%s'",
+				n, top.Args))
+		}
 	}
 	if g.Entry != nil && g.Entry.Tip != "" {
 		f.Lines = append(f.Lines, "Tip: "+g.Entry.Tip)
 	}
 	return f
+}
+
+// orphaned is true when every process in the group was re-parented to
+// launchd, which is what happens when whatever launched them has exited.
+func orphaned(g *Group) bool {
+	for _, p := range g.Procs {
+		if p.PPID != 1 {
+			return false
+		}
+	}
+	return true
 }
 
 func memoryFinding(s System, groups []*Group, lowMem bool) Finding {

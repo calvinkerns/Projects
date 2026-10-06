@@ -111,6 +111,18 @@ struct ContentView: View {
                 }
             }
         }
+        .overlay(alignment: .bottom) {
+            if let notice = store.notice {
+                Label(notice, systemImage: "checkmark.circle.fill")
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.regularMaterial, in: Capsule())
+                    .shadow(radius: 8, y: 2)
+                    .padding(.bottom, 20)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.snappy, value: store.notice)
         .task { store.refresh() }
     }
 }

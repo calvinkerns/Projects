@@ -19,6 +19,7 @@ type Proc struct {
 	Path      string
 	Name      string // basename of Path
 	App       string // outermost .app bundle the binary lives in, if any
+	Args      string // full command line
 }
 
 func listProcs() ([]Proc, error) {
@@ -30,15 +31,35 @@ func listProcs() ([]Proc, error) {
 	// The Mac app runs us and asks not to be listed: a monitor showing up as
 	// the busiest thing on the machine (because it just launched) is noise.
 	caller, _ := strconv.Atoi(os.Getenv("WHY_SLOW_HIDE_PID"))
+	args := allArgs()
 	var procs []Proc
 	for _, line := range strings.Split(out, "\n") {
 		p, ok := parsePsLine(line)
 		if !ok || p.PID == self || p.PPID == self || (caller != 0 && p.PID == caller) {
 			continue
 		}
+		p.Args = args[p.PID]
 		procs = append(procs, p)
 	}
 	return procs, nil
+}
+
+// allArgs maps every PID to its full command line. It's a separate ps call
+// because both comm and args can contain spaces, so they can't share a line.
+func allArgs() map[int]string {
+	out, _ := run("ps", "-axo", "pid=,args=")
+	args := map[int]string{}
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		i := strings.IndexByte(line, ' ')
+		if i < 0 {
+			continue
+		}
+		if pid, err := strconv.Atoi(line[:i]); err == nil {
+			args[pid] = strings.TrimSpace(line[i+1:])
+		}
+	}
+	return args
 }
 
 // parsePsLine splits the five numeric columns off the front; whatever remains
@@ -115,8 +136,11 @@ func groupProcs(procs []Proc) []*Group {
 		e := lookup(p)
 		title, key := p.Name, p.Name
 		switch {
+		case e != nil && e.Interpreter && p.Args != "":
+			// Two node processes are usually two unrelated projects, but many
+			// copies of the same command are one runaway batch.
+			key = p.Name + "|" + p.Args
 		case e != nil && e.Interpreter:
-			// Two node processes are usually two unrelated projects.
 			key = fmt.Sprintf("%s#%d", p.Name, p.PID)
 		case e != nil:
 			title, key = e.Title, e.Title

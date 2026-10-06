@@ -243,9 +243,33 @@ struct GroupRow: View {
     }
 }
 
+struct StopRequest: Identifiable {
+    let id = UUID()
+    let title: String
+    let pids: [Int]
+}
+
 struct GroupDetail: View {
     @EnvironmentObject private var store: Store
     let group: ProcGroup
+    @State private var request: StopRequest?
+
+    private var warning: String {
+        switch group.verdict {
+        case "leave": "This is part of macOS. It will probably restart on its own, and things may misbehave until it does."
+        case "quit": "Unsaved work will be lost. Use Quit instead to let the app save first."
+        default: "Each gets a normal quit signal, and is forced to stop if it's still running two seconds later."
+        }
+    }
+
+    /// One click stops a process right away, except for parts of macOS.
+    private func stopOne(_ p: Proc) {
+        if group.verdict == "leave" {
+            request = StopRequest(title: "Stop \(group.title) (pid \(p.pid))?", pids: [p.pid])
+        } else {
+            store.stop(pids: [p.pid], what: group.title)
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -273,6 +297,7 @@ struct GroupDetail: View {
                     Text("Memory")
                     Text("Up")
                     Text("Started by")
+                    Text("")
                 }
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
@@ -283,6 +308,14 @@ struct GroupDetail: View {
                         Text(bytes(p.memory))
                         Text(uptime(p.uptime))
                         Text(p.parent.isEmpty ? "?" : p.parent)
+                        Button {
+                            stopOne(p)
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.secondary)
+                        .help("Stop process \(String(p.pid))")
                     }
                     .font(.callout)
                     .monospacedDigit()
@@ -310,10 +343,29 @@ struct GroupDetail: View {
                     Button("Reveal in Finder") { store.reveal(path) }
                 }
                 Button("Open Activity Monitor") { store.openActivityMonitor() }
+                Spacer()
+                Button(role: .destructive) {
+                    let n = group.procs.count
+                    request = StopRequest(
+                        title: n == 1 ? "Stop \(group.title)?" : "Stop all \(n) \(group.title) processes?",
+                        pids: group.procs.map(\.pid))
+                } label: {
+                    Label(group.procs.count == 1 ? "Stop" : "Stop all \(group.procs.count)",
+                          systemImage: "xmark.octagon")
+                }
+                .tint(.red)
             }
             .controlSize(.small)
             .padding(.top, 2)
         }
         .textSelection(.enabled)
+        .confirmationDialog(request?.title ?? "", isPresented: Binding(
+            get: { request != nil },
+            set: { if !$0 { request = nil } }
+        ), presenting: request) { req in
+            Button("Stop", role: .destructive) { store.stop(pids: req.pids, what: group.title) }
+        } message: { _ in
+            Text(warning)
+        }
     }
 }

@@ -62,7 +62,7 @@ struct PortRow: View {
                 if canStop {
                     Button("Stop") { confirming = true }
                         .confirmationDialog("Stop \(port.title) on port \(String(port.port))?", isPresented: $confirming) {
-                            Button("Stop", role: .destructive) { store.stop(pid: port.pid) }
+                            Button("Stop", role: .destructive) { store.stop(pids: [port.pid], what: port.title) }
                         } message: {
                             Text(verbatim: "This asks it to shut down, the same as running kill \(port.pid) in Terminal.")
                         }

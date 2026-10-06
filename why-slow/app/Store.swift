@@ -104,6 +104,7 @@ final class Store: ObservableObject {
     @Published private(set) var updated: Date?
     @Published private(set) var spikes: [String: Spike] = [:]
     @Published private(set) var liveSince = Date()
+    @Published private(set) var notice: String?
     @Published var live = false {
         didSet { live ? startLive() : stopLive() }
     }
@@ -202,10 +203,49 @@ final class Store: ObservableObject {
         refreshSoon()
     }
 
-    /// Politely asks a process to stop, the same as `kill <pid>`.
-    func stop(pid: Int) {
-        kill(pid_t(pid), SIGTERM)
-        refreshSoon()
+    /// Stops processes: a polite quit signal first, then a forced one for
+    /// anything still running two seconds later. Never stops this app.
+    func stop(pids: [Int], what: String) {
+        let me = Int(ProcessInfo.processInfo.processIdentifier)
+        let targets = Array(Set(pids).subtracting([me]))
+        guard !targets.isEmpty else { return }
+        Task.detached {
+            let result = Store.terminate(targets)
+            await MainActor.run {
+                self.show(result.message(for: what))
+                self.refresh()
+            }
+        }
+    }
+
+    nonisolated static func terminate(_ pids: [Int]) -> StopResult {
+        var denied = 0
+        var pending: [Int] = []
+        for pid in pids {
+            if kill(pid_t(pid), SIGTERM) == 0 {
+                pending.append(pid)
+            } else if errno == EPERM {
+                denied += 1 // owned by the system or another user
+            } // ESRCH: already gone
+        }
+        let deadline = Date().addingTimeInterval(2)
+        while !pending.isEmpty && Date() < deadline {
+            usleep(100_000)
+            pending.removeAll { kill(pid_t($0), 0) != 0 }
+        }
+        for pid in pending { kill(pid_t(pid), SIGKILL) }
+        if !pending.isEmpty { usleep(300_000) }
+        let survived = pending.filter { kill(pid_t($0), 0) == 0 }.count
+        return StopResult(stopped: pids.count - denied - survived, forced: pending.count - survived,
+                          denied: denied, survived: survived)
+    }
+
+    private func show(_ message: String) {
+        notice = message
+        Task {
+            try? await Task.sleep(for: .seconds(5))
+            if notice == message { notice = nil }
+        }
     }
 
     func reveal(_ path: String) {
@@ -224,6 +264,29 @@ final class Store: ObservableObject {
 
     private func refreshSoon() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self.refresh() }
+    }
+}
+
+struct StopResult {
+    let stopped: Int
+    let forced: Int
+    let denied: Int
+    let survived: Int
+
+    func message(for what: String) -> String {
+        var parts: [String] = []
+        if stopped > 0 {
+            var s = "Stopped \(stopped) \(what) \(stopped == 1 ? "process" : "processes")"
+            if forced > 0 { s += " (\(forced) had to be forced)" }
+            parts.append(s + ".")
+        }
+        if denied > 0 {
+            parts.append("\(denied) \(denied == 1 ? "belongs" : "belong") to macOS or another user and can't be stopped from here.")
+        }
+        if survived > 0 {
+            parts.append("\(survived) \(survived == 1 ? "is" : "are") still running.")
+        }
+        return parts.isEmpty ? "Nothing to stop; already gone." : parts.joined(separator: " ")
     }
 }
 

@@ -96,3 +96,22 @@ func TestDiagnoseThrottledAndFullDisk(t *testing.T) {
 		t.Errorf("findings %s", titles(fs))
 	}
 }
+
+func TestDiagnoseRunawayCopies(t *testing.T) {
+	var procs []Proc
+	for i := 0; i < 48; i++ {
+		procs = append(procs, Proc{PID: 1000 + i, PPID: 1, Name: "Python", CPU: 22, Args: "/usr/bin/python3 lab1A.py"})
+	}
+	procs = append(procs, Proc{PID: 2000, PPID: 500, Name: "python3", CPU: 1, Args: "python3 server.py"})
+	groups := groupProcs(procs)
+	if len(groups) != 2 {
+		t.Fatalf("want the 48 copies as one group plus server.py, got %d groups", len(groups))
+	}
+	_, fs := diagnose(calmSystem(), groups)
+	if len(fs) == 0 || !strings.Contains(fs[0].Title, "across 48 processes") {
+		t.Fatalf("findings %s", titles(fs))
+	}
+	if body := strings.Join(fs[0].Lines, "\n"); !strings.Contains(body, "pkill -f '/usr/bin/python3 lab1A.py'") {
+		t.Errorf("expected a pkill hint, got:\n%s", body)
+	}
+}

@@ -58,8 +58,8 @@ func explain(query string) error {
 	return nil
 }
 
-// matchGroups finds what the user asked about: a PID, or a name that appears
-// in a group's title or in any of its processes' names or apps.
+// matchGroups finds what the user asked about: a PID, or text that appears in
+// a group's title or in any of its processes' names, apps or command lines.
 func matchGroups(procs []Proc, byPID map[int]Proc, query string) []*Group {
 	if pid, err := strconv.Atoi(query); err == nil {
 		if p, ok := byPID[pid]; ok {
@@ -76,7 +76,8 @@ func matchGroups(procs []Proc, byPID map[int]Proc, query string) []*Group {
 			continue
 		}
 		for _, p := range g.Procs {
-			if strings.Contains(strings.ToLower(p.Name), q) || strings.Contains(strings.ToLower(p.App), q) {
+			if strings.Contains(strings.ToLower(p.Name), q) || strings.Contains(strings.ToLower(p.App), q) ||
+				strings.Contains(strings.ToLower(p.Args), q) {
 				groups = append(groups, g)
 				break
 			}
