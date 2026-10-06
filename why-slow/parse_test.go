@@ -81,6 +81,24 @@ func TestParseSysctl(t *testing.T) {
 	}
 }
 
+func TestParseGPU(t *testing.T) {
+	m2 := `+-o AGXAcceleratorG14X  <class AGXAcceleratorG14X, id 0x1000004a5>
+    {
+      "PerformanceStatistics" = {"Tiler Utilization %"=1,"Renderer Utilization %"=2,"Device Utilization %"=7}
+      "model" = "Apple M2 Pro"
+    }`
+	if g := parseGPU(m2); g != 7 {
+		t.Errorf("gpu = %d", g)
+	}
+	dual := `"Device Utilization %"=12 ... "Device Utilization %"=64`
+	if g := parseGPU(dual); g != 64 {
+		t.Errorf("dual gpu = %d", g)
+	}
+	if g := parseGPU("no accelerators here"); g != -1 {
+		t.Errorf("unknown gpu = %d", g)
+	}
+}
+
 func TestLaunchItemNaming(t *testing.T) {
 	cisco := LaunchItem{
 		Label:   "com.cisco.anyconnect.gui",

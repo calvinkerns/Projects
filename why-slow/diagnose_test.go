@@ -14,6 +14,7 @@ func calmSystem() System {
 		DiskFree:      200 << 30,
 		DiskTotal:     500 << 30,
 		CPUSpeedLimit: 100,
+		GPU:           3,
 	}
 }
 
@@ -131,5 +132,14 @@ func TestShare(t *testing.T) {
 		if got := share(c.cpu, c.ncpu); got != c.want {
 			t.Errorf("share(%v, %d) = %q, want %q", c.cpu, c.ncpu, got, c.want)
 		}
+	}
+}
+
+func TestDiagnoseBusyGPU(t *testing.T) {
+	s := calmSystem()
+	s.GPU = 95 // a video export: the CPU is quiet, the graphics chip isn't
+	status, fs := diagnose(s, nil)
+	if status != "Busy" || len(fs) != 1 || fs[0].Title != "Your graphics chip is 95% busy." {
+		t.Errorf("status %q, findings %s", status, titles(fs))
 	}
 }

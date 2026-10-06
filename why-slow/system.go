@@ -23,6 +23,7 @@ type System struct {
 	DiskFree      uint64
 	DiskTotal     uint64
 	CPUSpeedLimit int // 100 means not throttled
+	GPU           int // percent busy, -1 when unknown
 }
 
 // commands are the only programs why-slow runs, by absolute path so that
@@ -35,6 +36,7 @@ var commands = map[string]string{
 	"lsof":            "/usr/sbin/lsof",
 	"launchctl":       "/bin/launchctl",
 	"plutil":          "/usr/bin/plutil",
+	"ioreg":           "/usr/sbin/ioreg",
 }
 
 // commandTimeout bounds every command, so a hung lsof (say, on an
@@ -60,10 +62,11 @@ var (
 	swapRe  = regexp.MustCompile(`total = ([\d.]+)M\s+used = ([\d.]+)M`)
 	freeRe  = regexp.MustCompile(`free percentage: (\d+)%`)
 	speedRe = regexp.MustCompile(`CPU_Speed_Limit\s*=\s*(\d+)`)
+	gpuRe   = regexp.MustCompile(`"Device Utilization %"\s*=\s*(\d+)`)
 )
 
 func readSystem() System {
-	s := System{MemFreePct: -1, CPUSpeedLimit: 100}
+	s := System{MemFreePct: -1, CPUSpeedLimit: 100, GPU: -1}
 
 	if out, err := run("sysctl", "-n", "hw.ncpu", "hw.memsize", "vm.loadavg", "vm.swapusage"); err == nil {
 		lines := strings.Split(strings.TrimSpace(out), "\n")
@@ -97,7 +100,23 @@ func readSystem() System {
 			s.CPUSpeedLimit, _ = strconv.Atoi(m[1])
 		}
 	}
+
+	if out, err := run("ioreg", "-r", "-d", "1", "-c", "IOAccelerator"); err == nil {
+		s.GPU = parseGPU(out)
+	}
 	return s
+}
+
+// parseGPU reads how busy the graphics chip is from ioreg's accelerator
+// statistics. Intel Macs can have two GPUs; the busier one is what you feel.
+func parseGPU(out string) int {
+	gpu := -1
+	for _, m := range gpuRe.FindAllStringSubmatch(out, -1) {
+		if v, err := strconv.Atoi(m[1]); err == nil {
+			gpu = max(gpu, min(v, 100))
+		}
+	}
+	return gpu
 }
 
 // parseLoad reads sysctl's "{ 7.71 4.55 3.26 }".

@@ -21,6 +21,9 @@ func printOverview(sys System, groups []*Group, all bool) {
 		fmt.Sprintf("CPU %.0f%% used", totalCPU(groups, sys.NCPU)),
 		fmt.Sprintf("load %.1f on %d cores", sys.Load[0], sys.NCPU),
 	}
+	if sys.GPU >= 0 {
+		parts = append(parts, fmt.Sprintf("GPU %d%% busy", sys.GPU))
+	}
 	if sys.MemFreePct >= 0 {
 		parts = append(parts, fmt.Sprintf("%s RAM, %d%% free", human(sys.MemTotal), sys.MemFreePct))
 	}

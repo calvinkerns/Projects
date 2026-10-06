@@ -23,6 +23,7 @@ struct SystemInfo: Decodable {
     let diskFree: UInt64
     let diskTotal: UInt64
     let cpuSpeedLimit: Int
+    let gpuUsed: Int // percent busy, -1 when unknown
 }
 
 struct Finding: Decodable, Hashable {

@@ -21,6 +21,10 @@ CPU (share of your whole Mac)
 CPU is shown as a share of the whole Mac, so 100% means every core is busy. (Activity Monitor and
 `top` count per core instead, where a 10-core Mac tops out at 1000%.)
 
+Video playback and editing, exports and games mostly run on the graphics chip, which the CPU figure
+doesn't include, so the header also shows how busy the GPU is, and it gets a finding of its own
+above 80%. macOS reports that for the chip as a whole, not per app.
+
 Every process gets one of four verdicts:
 
 | verdict        | meaning                                                       |
@@ -108,8 +112,8 @@ go test ./...
 
 ## How it works
 
-It reads what macOS already exposes (`ps`, `sysctl`, `memory_pressure`, `pmset`, `lsof`,
-`launchctl`, launchd plists, `statfs`), groups processes the way a person thinks about them (all of
+It reads what macOS already exposes (`ps`, `sysctl`, `memory_pressure`, `pmset`, `ioreg`,
+`lsof`, `launchctl`, launchd plists, `statfs`), groups processes the way a person thinks about them (all of
 Spotlight's workers together, every Chrome helper under Chrome), and looks each group up in a
 hand-written knowledge base (`knowledge.go`). Anything not in the knowledge base gets a best guess
 from where its binary lives.

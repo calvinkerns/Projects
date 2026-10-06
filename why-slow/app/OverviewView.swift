@@ -113,7 +113,8 @@ struct StatTiles: View {
         let lowMem = system.memFreePct >= 0 && system.memFreePct < 25
         // Same thresholds as the CLI's diagnosis.
         let diskLow = system.diskTotal > 0 && (system.diskFree < system.diskTotal / 10 || system.diskFree < 10 << 30)
-        HStack(spacing: 12) {
+        // Wraps onto two rows when the window is narrow.
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 12)], spacing: 12) {
             // Load above the core count means work is queueing for the CPU even
             // if the percentage hasn't caught up yet.
             StatTile(title: "CPU", icon: "cpu",
@@ -121,6 +122,15 @@ struct StatTiles: View {
                      detail: String(format: "all %d cores · load %.1f", system.cores, load),
                      fraction: system.cpuUsed / 100,
                      warn: system.cpuUsed >= 90 || load > Double(system.cores))
+            // Video, exports and games load the graphics chip, which the CPU
+            // figure doesn't include. Same threshold as the CLI's diagnosis.
+            if system.gpuUsed >= 0 {
+                StatTile(title: "GPU", icon: "square.stack.3d.up",
+                         value: "\(system.gpuUsed)% busy",
+                         detail: "graphics chip",
+                         fraction: Double(system.gpuUsed) / 100,
+                         warn: system.gpuUsed >= 80)
+            }
             StatTile(title: "Memory", icon: "memorychip",
                      value: system.memFreePct >= 0 ? "\(system.memFreePct)% free" : "?",
                      detail: "of \(bytes(system.memTotal))",

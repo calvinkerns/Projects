@@ -3,9 +3,19 @@
 # Usage: ./build-app.sh            build into build/
 #        ./build-app.sh --install  also copy it to ~/Applications
 #        ./build-app.sh --zip      also make build/Why Slow.zip to send to someone
+#        (both flags together do both)
 # The app is universal: one download runs on both Apple Silicon and Intel Macs.
 set -eu
 cd "$(dirname "$0")"
+
+install=no zip=no
+for arg in "$@"; do
+	case "$arg" in
+	--install) install=yes ;;
+	--zip) zip=yes ;;
+	*) echo "unknown option: $arg" >&2; exit 2 ;;
+	esac
+done
 
 APP="build/Why Slow.app"
 rm -rf "$APP" build/AppIcon.iconset build/arch "build/Why Slow.zip"
@@ -33,14 +43,14 @@ iconutil -c icns build/AppIcon.iconset -o "$APP/Contents/Resources/AppIcon.icns"
 codesign --force --deep --sign - "$APP"
 echo "built $APP"
 
-if [ "${1:-}" = "--install" ]; then
+if [ "$install" = yes ]; then
 	mkdir -p "$HOME/Applications"
 	rm -rf "$HOME/Applications/Why Slow.app"
 	cp -R "$APP" "$HOME/Applications/"
 	echo "installed to ~/Applications/Why Slow.app"
 fi
 
-if [ "${1:-}" = "--zip" ]; then
+if [ "$zip" = yes ]; then
 	# ditto keeps the signature and bundle metadata intact, unlike plain zip.
 	ditto -c -k --keepParent "$APP" "build/Why Slow.zip"
 	echo "zipped build/Why Slow.zip ($(du -h "build/Why Slow.zip" | cut -f1))"

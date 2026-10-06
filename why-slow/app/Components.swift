@@ -182,6 +182,8 @@ struct StatTile: View {
             Text(value)
                 .font(.title2.weight(.semibold))
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             ProgressView(value: min(max(fraction, 0), 1))
                 .tint(tint)
             Text(detail)

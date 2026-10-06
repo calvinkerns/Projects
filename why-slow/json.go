@@ -33,6 +33,7 @@ type jsonSystem struct {
 	DiskFree      uint64 `json:"diskFree"`
 	DiskTotal     uint64 `json:"diskTotal"`
 	CPUSpeedLimit int    `json:"cpuSpeedLimit"`
+	GPU           int    `json:"gpuUsed"` // percent busy, -1 when unknown
 }
 
 type jsonGroup struct {
@@ -122,7 +123,7 @@ func writeJSON() error {
 		System: jsonSystem{
 			Cores: sys.NCPU, CPUUsed: totalCPU(groups, sys.NCPU), Load: sys.Load, MemTotal: sys.MemTotal, MemFreePct: sys.MemFreePct,
 			SwapUsed: sys.SwapUsed, SwapTotal: sys.SwapTotal, DiskFree: sys.DiskFree, DiskTotal: sys.DiskTotal,
-			CPUSpeedLimit: sys.CPUSpeedLimit,
+			CPUSpeedLimit: sys.CPUSpeedLimit, GPU: sys.GPU,
 		},
 		Groups: []jsonGroup{},
 		Ports:  []jsonPort{},

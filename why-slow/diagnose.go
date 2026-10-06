@@ -21,7 +21,7 @@ func diagnose(s System, groups []*Group) (status string, fs []Finding) {
 	switch {
 	case loadRatio > 1.5 || (memKnown && s.MemFreePct < 10) || s.CPUSpeedLimit < 80:
 		status = "Struggling"
-	case loadRatio > 0.7 || lowMem || s.CPUSpeedLimit < 100:
+	case loadRatio > 0.7 || lowMem || s.CPUSpeedLimit < 100 || s.GPU >= gpuBusy:
 		status = "Busy"
 	default:
 		status = "Calm"
@@ -42,6 +42,16 @@ func diagnose(s System, groups []*Group) (status string, fs []Finding) {
 			break
 		}
 		fs = append(fs, cpuFinding(g, s.NCPU))
+	}
+
+	if s.GPU >= gpuBusy {
+		fs = append(fs, Finding{
+			Title: fmt.Sprintf("Your graphics chip is %d%% busy.", s.GPU),
+			Lines: []string{
+				"Video playback and editing, exports, games, 3D and screen recording run on the graphics chip, not the CPU, so they won't show up much in the CPU list.",
+				"macOS doesn't say which app is using it; it's usually the one you're working in. Pausing the export or game, or closing video tabs, frees it up.",
+			},
+		})
 	}
 
 	// macOS doesn't move swapped pages back until they're needed, so swap left
@@ -76,6 +86,9 @@ func diagnose(s System, groups []*Group) (status string, fs []Finding) {
 	}
 	return status, fs
 }
+
+// gpuBusy is when the graphics chip is busy enough to make the Mac feel laggy.
+const gpuBusy = 80
 
 func cpuFinding(g *Group, ncpu int) Finding {
 	title := fmt.Sprintf("%s is using %s of your CPU", g.Title, share(g.CPU, ncpu))
