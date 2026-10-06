@@ -108,8 +108,15 @@ var knowledge = []Entry{
 		Verdict: Wait,
 	},
 	{
+		Title:   "System downloads (mobileassetd)",
+		Names:   []string{"mobileassetd"},
+		What:    "Downloads system content in the background: fonts, dictionaries, Siri voices and on-device AI models.",
+		Why:     "Busy after macOS updates or when you turn on a feature that needs new content.",
+		Verdict: Wait,
+	},
+	{
 		Title:   "Siri & Suggestions",
-		Names:   []string{"contextstored", "knowledge-agent", "duetexpertd", "suggestd", "biomesyncd", "intelligenceplatformd", "siriknowledged"},
+		Names:   []string{"contextstored", "knowledge-agent", "duetexpertd", "suggestd", "biomesyncd", "BiomeAgent", "biomed", "intelligenceplatformd", "siriknowledged"},
 		What:    "On-device learning for Siri, Spotlight ranking and app suggestions.",
 		Why:     "Catches up in bursts, especially after updates.",
 		Verdict: Wait,

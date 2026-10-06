@@ -32,7 +32,7 @@ func printOverview(sys System, groups []*Group, all bool) {
 	}
 
 	status, findings := diagnose(sys, groups)
-	fmt.Printf("%s  %s\n", bold(status), dim(strings.Join(parts, " · ")))
+	fmt.Printf("%s  %s\n", bold(paintStatus(status)), dim(strings.Join(parts, " · ")))
 	for _, f := range findings {
 		fmt.Printf("\n%s %s\n", bold("▶"), bold(f.Title))
 		for _, l := range f.Lines {
@@ -65,6 +65,16 @@ func printOverview(sys System, groups []*Group, all bool) {
 		}
 		printRow(fmt.Sprintf("%7s", human(g.RSS)), g)
 	}
+}
+
+func paintStatus(status string) string {
+	switch status {
+	case "Struggling":
+		return red(status)
+	case "Busy":
+		return yellow(status)
+	}
+	return green(status)
 }
 
 func printRow(amount string, g *Group) {

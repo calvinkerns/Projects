@@ -29,47 +29,67 @@ var portHints = map[int]string{
 	27017: "MongoDB",
 }
 
-func ports() error {
+// PortInfo is a listener with everything needed to explain it.
+type PortInfo struct {
+	Listener
+	Proc    Proc
+	Title   string
+	Verdict Verdict
+	Detail  string // what it is, or for scripts the command and folder
+	Note    string // what the port number usually means
+}
+
+func collectPorts(procs []Proc) []PortInfo {
 	// lsof exits non-zero when nothing matches, so only fail on no output.
 	out, err := run("lsof", "+c", "0", "-iTCP", "-sTCP:LISTEN", "-nP", "-Fpn")
 	if err != nil && out == "" {
-		fmt.Println("Nothing of yours is listening on a TCP port.")
 		return nil
-	}
-	listeners := parseListeners(out)
-
-	procs, err := listProcs()
-	if err != nil {
-		return err
 	}
 	byPID := map[int]Proc{}
 	for _, p := range procs {
 		byPID[p.PID] = p
 	}
 
-	fmt.Println(bold("LISTENING PORTS") + dim(" (your processes only; sudo shows system ones too)"))
-	for _, l := range listeners {
+	var infos []PortInfo
+	for _, l := range parseListeners(out) {
 		p, ok := byPID[l.PID]
 		if !ok {
 			continue
 		}
 		g := groupProcs([]Proc{p})[0]
-		where := dim(pad("this Mac only", 14))
-		if l.Exposed {
-			where = yellow(pad("your network", 14))
-		}
-		fmt.Printf("\n  %s  %s %s %s  %s\n", bold(fmt.Sprintf("%5d", l.Port)), pad(clip(g.Title, 24), 24), where,
-			dim("up "+ago(p.Elapsed)), dim(fmt.Sprintf("pid %d", p.PID)))
-
-		detail := firstSentence(g.What())
-		if g.Verdict() == Check {
+		info := PortInfo{Listener: l, Proc: p, Title: g.Title, Verdict: g.Verdict(), Detail: firstSentence(g.What()), Note: portNote(p, l.Port)}
+		if info.Verdict == Check {
 			if cmd := commandLine(p); cmd != "" {
-				detail = cmd
+				info.Detail = cmd
 			}
 		}
-		fmt.Printf("         %s\n", detail)
-		if hint := portNote(p, l.Port); hint != "" {
-			fmt.Printf("         %s\n", dim(hint))
+		infos = append(infos, info)
+	}
+	return infos
+}
+
+func ports() error {
+	procs, err := listProcs()
+	if err != nil {
+		return err
+	}
+	infos := collectPorts(procs)
+	if len(infos) == 0 {
+		fmt.Println("Nothing of yours is listening on a TCP port.")
+		return nil
+	}
+
+	fmt.Println(bold("LISTENING PORTS") + dim(" (your processes only; sudo shows system ones too)"))
+	for _, in := range infos {
+		where := dim(pad("this Mac only", 14))
+		if in.Exposed {
+			where = yellow(pad("your network", 14))
+		}
+		fmt.Printf("\n  %s  %s %s %s  %s\n", bold(fmt.Sprintf("%5d", in.Port)), pad(clip(in.Title, 24), 24), where,
+			dim("up "+ago(in.Proc.Elapsed)), dim(fmt.Sprintf("pid %d", in.PID)))
+		fmt.Printf("         %s\n", in.Detail)
+		if in.Note != "" {
+			fmt.Printf("         %s\n", dim(in.Note))
 		}
 	}
 	fmt.Printf("\n%s\n", dim(`"your network" means other devices on your Wi-Fi can connect. Stop one with: kill <pid>`))

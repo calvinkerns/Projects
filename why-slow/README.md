@@ -60,7 +60,23 @@ group shows how much memory it is using right now:
 actual command and the folder it was started in. It also explains the classic "port 5000 is already
 in use" on macOS (it's AirPlay Receiver).
 
-## Building
+## The Mac app
+
+`Why Slow.app` is a window around the same engine: a status page with the findings and an expandable
+list of what's running, plus pages for listening ports and background jobs. It can quit apps, stop a
+forgotten dev server, and in Live mode (⌘L) refresh every 3 seconds and remember CPU spikes.
+
+```
+./build-app.sh --install    # builds build/Why Slow.app and copies it to ~/Applications
+```
+
+Then open it from Spotlight or Launchpad like any other app, and drag it to the Dock to keep it there.
+Rebuild with the same command after changing anything.
+
+The app is SwiftUI (`app/`), compiled with `swiftc`, so it needs the Xcode command line tools but no
+Xcode project. It runs the Go binary bundled in its Resources with `--json` and draws what comes back.
+
+## Building the CLI
 
 Go 1.22+, no dependencies, macOS only.
 
@@ -74,6 +90,7 @@ go test ./...
 It reads what macOS already exposes (`ps`, `sysctl`, `memory_pressure`, `pmset`, `lsof`,
 `launchctl`, launchd plists, `statfs`), groups processes the way a person thinks about them (all of
 Spotlight's workers together, every Chrome helper under Chrome), and looks each group up in a
-hand-written knowledge base (`knowledge.go`). Anything not in the knowledge base gets a best guess from where its binary lives.
+hand-written knowledge base (`knowledge.go`). Anything not in the knowledge base gets a best guess
+from where its binary lives.
 
 Adding a process is a single `Entry` in `knowledge.go`.

@@ -158,9 +158,14 @@ func vendorOf(it LaunchItem) string {
 // target is the app a job really starts: jobs that run `/usr/bin/open
 // Foo.app` should be described as Foo, not "open".
 func target(it LaunchItem) string {
+	return appBundle(targetBundle(it))
+}
+
+// targetBundle is the path of the .app a job starts, if any.
+func targetBundle(it LaunchItem) string {
 	for _, a := range append([]string{it.Program}, it.Args...) {
-		if app := appBundle(a); app != "" {
-			return app
+		if b := appPath(a); b != "" {
+			return b
 		}
 	}
 	return ""
@@ -210,18 +215,21 @@ type vendorGroup struct {
 	RSS     uint64
 }
 
-func login() error {
+// collectLogin groups launch items by company, biggest memory user first.
+func collectLogin(procs []Proc) []*vendorGroup {
 	items := readLaunchItems()
-	procs, err := listProcs()
-	if err != nil {
-		return err
-	}
 
 	// Daemons run outside your login session, so launchctl can't give us
 	// their PIDs; find them by executable path instead.
 	byPath := map[string]int{}
+	// Many jobs only launch an app and exit, or the app relaunches itself,
+	// so also count a job as running if anything inside its app bundle is.
+	byBundle := map[string]int{}
 	for _, p := range procs {
 		byPath[p.Path] = p.PID
+		if b := appPath(p.Path); b != "" && byBundle[b] == 0 {
+			byBundle[b] = p.PID
+		}
 	}
 	// Count memory by app group, so a job that starts Creative Cloud is
 	// charged for all of Creative Cloud's helpers, but only once.
@@ -239,6 +247,9 @@ func login() error {
 		if it.PID == 0 {
 			it.PID = byPath[filepath.Clean(it.Program)]
 		}
+		if it.PID == 0 {
+			it.PID = byBundle[targetBundle(it)]
+		}
 		name := vendorOf(it)
 		v := byVendor[name]
 		if v == nil {
@@ -255,16 +266,28 @@ func login() error {
 			}
 		}
 	}
-	if len(list) == 0 {
-		fmt.Println("No third-party launch agents or daemons installed. Nice and clean.")
-		return nil
-	}
 	sort.SliceStable(list, func(i, j int) bool {
 		if list[i].RSS != list[j].RSS {
 			return list[i].RSS > list[j].RSS
 		}
 		return len(list[i].Items) > len(list[j].Items)
 	})
+	for _, v := range list {
+		sort.SliceStable(v.Items, func(i, j int) bool { return v.Items[i].PID != 0 && v.Items[j].PID == 0 })
+	}
+	return list
+}
+
+func login() error {
+	procs, err := listProcs()
+	if err != nil {
+		return err
+	}
+	list := collectLogin(procs)
+	if len(list) == 0 {
+		fmt.Println("No third-party launch agents or daemons installed. Nice and clean.")
+		return nil
+	}
 
 	fmt.Println(bold("STARTS ON ITS OWN") + dim(" (launch agents and daemons; apps in Login Items aren't listed)"))
 	for _, v := range list {
@@ -273,7 +296,6 @@ func login() error {
 			summary += " · " + human(v.RSS)
 		}
 		fmt.Printf("\n  %s  %s\n", bold(pad(v.Name, 18)), dim(summary))
-		sort.SliceStable(v.Items, func(i, j int) bool { return v.Items[i].PID != 0 && v.Items[j].PID == 0 })
 		for _, it := range v.Items {
 			dot := dim("○")
 			if it.PID != 0 {

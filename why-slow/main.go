@@ -17,6 +17,7 @@ Usage:
   why-slow ports               what's listening on network ports, and who started it
   why-slow login               what starts on its own, who installed it, and what it costs
   why-slow explain <name|pid>  everything known about one process
+  why-slow --json              all of the above as JSON (what the Mac app reads)
 `
 
 func main() {
@@ -29,6 +30,8 @@ func main() {
 		err = overview(true)
 	case args[0] == "-w" || args[0] == "--watch":
 		err = watch()
+	case args[0] == "--json":
+		err = writeJSON()
 	case args[0] == "login":
 		err = login()
 	case args[0] == "ports":

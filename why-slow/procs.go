@@ -27,10 +27,13 @@ func listProcs() ([]Proc, error) {
 		return nil, fmt.Errorf("running ps: %w", err)
 	}
 	self := os.Getpid()
+	// The Mac app runs us and asks not to be listed: a monitor showing up as
+	// the busiest thing on the machine (because it just launched) is noise.
+	caller, _ := strconv.Atoi(os.Getenv("WHY_SLOW_HIDE_PID"))
 	var procs []Proc
 	for _, line := range strings.Split(out, "\n") {
 		p, ok := parsePsLine(line)
-		if !ok || p.PID == self || p.PPID == self {
+		if !ok || p.PID == self || p.PPID == self || (caller != 0 && p.PID == caller) {
 			continue
 		}
 		procs = append(procs, p)

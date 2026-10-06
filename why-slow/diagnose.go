@@ -8,8 +8,8 @@ import (
 
 // Finding is one thing worth telling the user about, most important first.
 type Finding struct {
-	Title string
-	Lines []string
+	Title string   `json:"title"`
+	Lines []string `json:"lines"`
 }
 
 func diagnose(s System, groups []*Group) (status string, fs []Finding) {
@@ -19,11 +19,11 @@ func diagnose(s System, groups []*Group) (status string, fs []Finding) {
 
 	switch {
 	case loadRatio > 1.5 || (memKnown && s.MemFreePct < 10) || s.CPUSpeedLimit < 80:
-		status = red("Struggling")
+		status = "Struggling"
 	case loadRatio > 0.7 || lowMem || s.CPUSpeedLimit < 100:
-		status = yellow("Busy")
+		status = "Busy"
 	default:
-		status = green("Calm")
+		status = "Calm"
 	}
 
 	if s.CPUSpeedLimit < 100 {

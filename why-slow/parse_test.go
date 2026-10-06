@@ -115,3 +115,17 @@ func TestKeepAlive(t *testing.T) {
 		t.Error("dictionary form means conditionally kept alive")
 	}
 }
+
+func TestBundlePaths(t *testing.T) {
+	helper := "/Applications/Utilities/Adobe Creative Cloud/ACC/Creative Cloud.app/Contents/MacOS/../Frameworks/Creative Cloud UI Helper.app/Contents/MacOS/Creative Cloud UI Helper"
+	if got := appPath(helper); got != "/Applications/Utilities/Adobe Creative Cloud/ACC/Creative Cloud.app" {
+		t.Errorf("appPath = %q", got)
+	}
+	if got := appPath("/usr/bin/open"); got != "" {
+		t.Errorf("appPath of a plain binary = %q", got)
+	}
+	viaOpen := LaunchItem{Program: "/usr/bin/open", Args: []string{"/usr/bin/open", "-a", "/Applications/Foo.app"}}
+	if got := targetBundle(viaOpen); got != "/Applications/Foo.app" {
+		t.Errorf("targetBundle = %q", got)
+	}
+}
