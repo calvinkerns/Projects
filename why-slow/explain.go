@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -70,9 +71,18 @@ func matchGroups(procs []Proc, byPID map[int]Proc, query string) []*Group {
 		return nil
 	}
 
+	// The shell that ran `why-slow explain foo` has "foo" in its own
+	// command line; leave it out.
+	parent := os.Getppid()
+	var others []Proc
+	for _, p := range procs {
+		if p.PID != parent {
+			others = append(others, p)
+		}
+	}
 	q := strings.ToLower(query)
 	var groups []*Group
-	for _, g := range groupProcs(procs) {
+	for _, g := range groupProcs(others) {
 		if strings.Contains(strings.ToLower(g.Title), q) {
 			groups = append(groups, g)
 			continue

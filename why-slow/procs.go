@@ -56,7 +56,7 @@ func allArgs() map[int]string {
 			continue
 		}
 		if pid, err := strconv.Atoi(line[:i]); err == nil {
-			args[pid] = strings.TrimSpace(line[i+1:])
+			args[pid] = printable(strings.TrimSpace(line[i+1:]))
 		}
 	}
 	return args
@@ -88,9 +88,9 @@ func parsePsLine(line string) (Proc, bool) {
 	kb, _ := strconv.ParseUint(fields[3], 10, 64)
 	p.RSS = kb * 1024
 	p.Elapsed = parseEtime(fields[4])
-	p.Path = rest
-	p.Name = filepath.Base(rest)
-	p.App = appBundle(rest)
+	p.Path = printable(rest)
+	p.Name = filepath.Base(p.Path)
+	p.App = appBundle(p.Path)
 	return p, true
 }
 
@@ -182,6 +182,11 @@ func (g *Group) What() string {
 	return what
 }
 
+// CanStop is false for processes the app must never offer to stop.
+func (g *Group) CanStop() bool {
+	return g.Entry == nil || !g.Entry.NoStop
+}
+
 // FreeAction is how to get back the memory this group is using.
 func (g *Group) FreeAction() string {
 	if g.Entry != nil && g.Entry.Free != "" {
@@ -239,7 +244,7 @@ func procCwd(pid int) string {
 	out, _ := run("lsof", "-a", "-p", strconv.Itoa(pid), "-d", "cwd", "-Fn")
 	for _, line := range strings.Split(out, "\n") {
 		if strings.HasPrefix(line, "n") {
-			return line[1:]
+			return printable(line[1:])
 		}
 	}
 	return ""

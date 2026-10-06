@@ -111,8 +111,8 @@ func TestDiagnoseRunawayCopies(t *testing.T) {
 	if len(fs) == 0 || !strings.Contains(fs[0].Title, "across 48 processes") {
 		t.Fatalf("findings %s", titles(fs))
 	}
-	if body := strings.Join(fs[0].Lines, "\n"); !strings.Contains(body, "pkill -f '/usr/bin/python3 lab1A.py'") {
-		t.Errorf("expected a pkill hint, got:\n%s", body)
+	if body := strings.Join(fs[0].Lines, "\n"); !strings.Contains(body, "kill 1000 1001 ") || !strings.HasSuffix(body, " 1047") {
+		t.Errorf("expected a kill hint listing all 48 PIDs, got:\n%s", body)
 	}
 }
 

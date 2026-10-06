@@ -38,6 +38,7 @@ struct ProcGroup: Decodable, Identifiable {
     let tip: String?
     let command: String?
     let appPath: String?
+    let canStop: Bool
     let cpu: Double
     let memory: UInt64
     let procs: [Proc]
@@ -52,9 +53,18 @@ struct Proc: Decodable, Identifiable {
     let cpu: Double
     let memory: UInt64
     let uptime: Int
+    let start: Int
     let path: String
 
     var id: Int { pid }
+    var target: StopTarget { StopTarget(pid: pid, start: start) }
+}
+
+/// A process to stop, identified by PID *and* start time, so a PID that's
+/// been reused by a different process since the last refresh is left alone.
+struct StopTarget: Hashable {
+    let pid: Int
+    let start: Int
 }
 
 struct ListeningPort: Decodable, Identifiable {
@@ -66,8 +76,11 @@ struct ListeningPort: Decodable, Identifiable {
     let note: String?
     let exposed: Bool
     let uptime: Int
+    let start: Int
+    let canStop: Bool
 
     var id: String { "\(pid):\(port)" }
+    var target: StopTarget { StopTarget(pid: pid, start: start) }
 }
 
 struct Vendor: Decodable, Identifiable {
@@ -134,7 +147,11 @@ final class Store: ObservableObject {
 
     /// Runs the Go CLI bundled in the app's Resources and decodes its report.
     nonisolated static func runCLI() throws -> Report {
+        #if DEBUG
         let override = ProcessInfo.processInfo.environment["WHY_SLOW_BIN"]
+        #else
+        let override: String? = nil
+        #endif
         guard let path = override ?? Bundle.main.path(forResource: "why-slow", ofType: nil) else {
             throw StoreError("The why-slow engine is missing from the app bundle. Rebuild with ./build-app.sh.")
         }
@@ -149,9 +166,30 @@ final class Store: ObservableObject {
         process.standardOutput = out
         process.standardError = err
         try process.run()
+
+        // The engine bounds each command it runs, so this only fires if
+        // something is badly wrong; without it a stuck run would leave the
+        // app refreshing forever.
+        let watchdog = DispatchWorkItem { if process.isRunning { process.terminate() } }
+        DispatchQueue.global().asyncAfter(deadline: .now() + 20, execute: watchdog)
+        defer { watchdog.cancel() }
+
+        // Read stderr alongside stdout, or a chatty stderr could fill its
+        // pipe and block the engine while we wait on stdout.
+        var errData = Data()
+        let errDone = DispatchGroup()
+        errDone.enter()
+        DispatchQueue.global().async {
+            errData = err.fileHandleForReading.readDataToEndOfFile()
+            errDone.leave()
+        }
         let data = out.fileHandleForReading.readDataToEndOfFile()
-        let errData = err.fileHandleForReading.readDataToEndOfFile()
+        errDone.wait()
         process.waitUntilExit()
+
+        if process.terminationReason == .uncaughtSignal {
+            throw StoreError("Reading your Mac took too long and was stopped. Try Refresh.")
+        }
         guard process.terminationStatus == 0 else {
             throw StoreError(String(decoding: errData, as: UTF8.self))
         }
@@ -204,14 +242,15 @@ final class Store: ObservableObject {
         refreshSoon()
     }
 
-    /// Stops processes: a polite quit signal first, then a forced one for
-    /// anything still running two seconds later. Never stops this app.
-    func stop(pids: [Int], what: String) {
+    /// Asks processes to quit (SIGTERM, like `kill`). With `force`, anything
+    /// still running two seconds later is killed outright (SIGKILL), which
+    /// loses unsaved work. Never touches this app, launchd or PID 0.
+    func stop(_ targets: [StopTarget], what: String, force: Bool) {
         let me = Int(ProcessInfo.processInfo.processIdentifier)
-        let targets = Array(Set(pids).subtracting([me]))
-        guard !targets.isEmpty else { return }
+        let safe = Array(Set(targets.filter { $0.pid > 1 && $0.pid != me }))
+        guard !safe.isEmpty else { return }
         Task.detached {
-            let result = Store.terminate(targets)
+            let result = Store.terminate(safe, force: force)
             await MainActor.run {
                 self.show(result.message(for: what))
                 self.refresh()
@@ -219,26 +258,64 @@ final class Store: ObservableObject {
         }
     }
 
-    nonisolated static func terminate(_ pids: [Int]) -> StopResult {
-        var denied = 0
+    nonisolated static func terminate(_ targets: [StopTarget], force: Bool) -> StopResult {
+        var gone = 0, denied = 0
         var pending: [Int] = []
-        for pid in pids {
-            if kill(pid_t(pid), SIGTERM) == 0 {
-                pending.append(pid)
+        for t in targets {
+            // The report the PID came from may be minutes old. If the process
+            // now has a different start time, the PID belongs to something else.
+            guard let started = startTime(t.pid) else {
+                // macOS hides other users' processes from us; it still exists
+                // if signalling it is refused rather than "no such process".
+                if kill(pid_t(t.pid), 0) != 0 && errno == EPERM { denied += 1 } else { gone += 1 }
+                continue
+            }
+            guard abs(started - t.start) <= 3 else {
+                gone += 1
+                continue
+            }
+            if kill(pid_t(t.pid), SIGTERM) == 0 {
+                pending.append(t.pid)
             } else if errno == EPERM {
-                denied += 1 // owned by the system or another user
-            } // ESRCH: already gone
+                denied += 1 // owned by macOS or another user
+            } else {
+                gone += 1
+            }
         }
-        let deadline = Date().addingTimeInterval(2)
+        let signalled = pending.count
+
+        let deadline = Date().addingTimeInterval(force ? 2 : 5)
         while !pending.isEmpty && Date() < deadline {
             usleep(100_000)
-            pending.removeAll { kill(pid_t($0), 0) != 0 }
+            pending.removeAll { !isAlive($0) }
         }
-        for pid in pending { kill(pid_t(pid), SIGKILL) }
-        if !pending.isEmpty { usleep(300_000) }
-        let survived = pending.filter { kill(pid_t($0), 0) == 0 }.count
-        return StopResult(stopped: pids.count - denied - survived, forced: pending.count - survived,
-                          denied: denied, survived: survived)
+        var forced = 0
+        if force && !pending.isEmpty {
+            for pid in pending { kill(pid_t(pid), SIGKILL) }
+            usleep(300_000)
+            let before = pending.count
+            pending.removeAll { !isAlive($0) }
+            forced = before - pending.count
+        }
+        return StopResult(stopped: signalled - pending.count, forced: forced, gone: gone,
+                          denied: denied, survived: pending.count, forceAvailable: !force)
+    }
+
+    /// When a process started, in unix seconds, or nil if it no longer exists.
+    nonisolated static func startTime(_ pid: Int) -> Int? {
+        guard let info = bsdInfo(pid), info.pbi_status != 5 /* SZOMB */ else { return nil }
+        return Int(info.pbi_start_tvsec)
+    }
+
+    /// A zombie (exited, waiting for its parent to notice) counts as gone.
+    nonisolated static func isAlive(_ pid: Int) -> Bool {
+        startTime(pid) != nil
+    }
+
+    nonisolated static func bsdInfo(_ pid: Int) -> proc_bsdinfo? {
+        var info = proc_bsdinfo()
+        let size = Int32(MemoryLayout<proc_bsdinfo>.size)
+        return proc_pidinfo(pid_t(pid), PROC_PIDTBSDINFO, 0, &info, size) == size ? info : nil
     }
 
     private func show(_ message: String) {
@@ -271,8 +348,10 @@ final class Store: ObservableObject {
 struct StopResult {
     let stopped: Int
     let forced: Int
+    let gone: Int
     let denied: Int
     let survived: Int
+    let forceAvailable: Bool
 
     func message(for what: String) -> String {
         var parts: [String] = []
@@ -285,9 +364,16 @@ struct StopResult {
             parts.append("\(denied) \(denied == 1 ? "belongs" : "belong") to macOS or another user and can't be stopped from here.")
         }
         if survived > 0 {
-            parts.append("\(survived) \(survived == 1 ? "is" : "are") still running.")
+            var s = "\(survived) \(survived == 1 ? "is" : "are") still running"
+            s += forceAvailable ? "; use Force Stop if it's stuck." : "."
+            parts.append(s)
         }
-        return parts.isEmpty ? "Nothing to stop; already gone." : parts.joined(separator: " ")
+        if gone > 0 && parts.isEmpty {
+            parts.append("Already gone; nothing to stop.")
+        } else if gone > 0 {
+            parts.append("\(gone) had already exited.")
+        }
+        return parts.joined(separator: " ")
     }
 }
 

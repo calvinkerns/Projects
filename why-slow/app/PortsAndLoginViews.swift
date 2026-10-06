@@ -25,9 +25,10 @@ struct PortsView: View {
 struct PortRow: View {
     @EnvironmentObject private var store: Store
     let port: ListeningPort
-    @State private var confirming = false
+    @State private var request: StopRequest?
 
-    private var canStop: Bool { port.verdict == "check" || port.verdict == "quit" }
+    // Only offer Stop for things you started (scripts, apps), not macOS's own.
+    private var canStop: Bool { port.canStop && (port.verdict == "check" || port.verdict == "quit") }
 
     var body: some View {
         Card {
@@ -60,12 +61,10 @@ struct PortRow: View {
                 .textSelection(.enabled)
                 Spacer()
                 if canStop {
-                    Button("Stop") { confirming = true }
-                        .confirmationDialog("Stop \(port.title) on port \(String(port.port))?", isPresented: $confirming) {
-                            Button("Stop", role: .destructive) { store.stop(pids: [port.pid], what: port.title) }
-                        } message: {
-                            Text(verbatim: "This asks it to shut down, the same as running kill \(port.pid) in Terminal.")
-                        }
+                    Button("Stop") {
+                        request = StopRequest(title: "Stop \(port.title) on port \(String(port.port))?", targets: [port.target])
+                    }
+                    .stopConfirmation($request, verdict: port.verdict, what: port.title, store: store)
                 }
             }
         }

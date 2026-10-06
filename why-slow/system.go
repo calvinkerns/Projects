@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 )
 
 // System is a snapshot of machine-wide health.
@@ -21,8 +25,34 @@ type System struct {
 	CPUSpeedLimit int // 100 means not throttled
 }
 
+// commands are the only programs why-slow runs, by absolute path so that
+// whatever is first on $PATH can't stand in for them.
+var commands = map[string]string{
+	"ps":              "/bin/ps",
+	"sysctl":          "/usr/sbin/sysctl",
+	"memory_pressure": "/usr/bin/memory_pressure",
+	"pmset":           "/usr/bin/pmset",
+	"lsof":            "/usr/sbin/lsof",
+	"launchctl":       "/bin/launchctl",
+	"plutil":          "/usr/bin/plutil",
+}
+
+// commandTimeout bounds every command, so a hung lsof (say, on an
+// unresponsive network mount) can't hang why-slow or the app with it.
+const commandTimeout = 10 * time.Second
+
 func run(name string, args ...string) (string, error) {
-	out, err := exec.Command(name, args...).Output()
+	path, ok := commands[name]
+	if !ok {
+		return "", fmt.Errorf("why-slow doesn't run %q", name)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, path, args...)
+	// In a German or French locale ps prints "0,1" and sysctl "{ 1,28 }",
+	// which wouldn't parse; always ask for C-locale numbers.
+	cmd.Env = append(os.Environ(), "LC_ALL=C")
+	out, err := cmd.Output()
 	return string(out), err
 }
 

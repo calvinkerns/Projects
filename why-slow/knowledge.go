@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -27,6 +26,7 @@ type Entry struct {
 	Free        string   // how to get its memory back, when not "Quitting <Title>"
 	Verdict     Verdict
 	Interpreter bool // runs someone else's code; show the command line
+	NoStop      bool // the app refuses to stop it: doing so breaks your session
 }
 
 var knowledge = []Entry{
@@ -34,6 +34,7 @@ var knowledge = []Entry{
 	{
 		Title:   "kernel_task",
 		Names:   []string{"kernel_task"},
+		NoStop:  true,
 		What:    "The core of macOS.",
 		Why:     "High CPU here is often deliberate: macOS makes kernel_task hog the CPU so other work can't overheat the machine.",
 		Tip:     "Check for heat: a blocked vent, a laptop on a blanket, a hot charger or a weak USB-C power supply.",
@@ -44,10 +45,27 @@ var knowledge = []Entry{
 		Names:   []string{"launchd"},
 		What:    "Starts and supervises every other process on the system.",
 		Verdict: Leave,
+		NoStop:  true,
+	},
+	{
+		Title:   "loginwindow",
+		Names:   []string{"loginwindow"},
+		What:    "Your login session. Every app you have open runs under it.",
+		Why:     "Stopping it logs you out on the spot, and unsaved work in every app is lost.",
+		Verdict: Leave,
+		NoStop:  true,
+	},
+	{
+		Title:   "Finder, Dock & menu bar",
+		Names:   []string{"Finder", "Dock", "SystemUIServer", "WindowManager", "NotificationCenter"},
+		What:    "Part of the macOS desktop: Finder, the Dock, the menu bar, window management or notifications.",
+		Why:     "macOS restarts these straight away if they stop, so stopping them only helps if one is frozen.",
+		Verdict: Leave,
 	},
 	{
 		Title:   "WindowServer",
 		Names:   []string{"WindowServer"},
+		NoStop:  true,
 		What:    "Draws everything on your screen.",
 		Why:     "Busy with lots of windows, high-resolution external displays, video, or apps that animate constantly.",
 		Tip:     "Close windows you don't need. On older Macs, Accessibility → Display → Reduce Transparency helps.",
@@ -309,19 +327,21 @@ func lookup(p Proc) *Entry {
 // guess describes a process the knowledge base doesn't cover, from where its
 // binary lives.
 func guess(p Proc) (string, Verdict) {
-	home, _ := os.UserHomeDir()
 	switch {
+	// Apps in /System/Applications (Terminal, Notes, Mail...) and Safari's
+	// cryptex are ordinary apps; everything else under /System is macOS.
+	case hasAnyPrefix(p.Path, "/System/", "/usr/libexec/", "/usr/sbin/", "/sbin/", "/usr/bin/", "/Library/Apple/") &&
+		!hasAnyPrefix(p.Path, "/System/Applications/", "/System/Volumes/Preboot/Cryptexes/App/System/Applications/"):
+		return "A built-in macOS component. macOS restarts these if they're killed, so it's rarely worth it.", Leave
 	case p.App != "" && strings.Contains(p.Name, "Helper"):
 		return fmt.Sprintf("A background helper of %s (a renderer, GPU process, plugin or extension).", p.App), Quit
 	case p.App != "":
 		return fmt.Sprintf("Part of the %s app.", p.App), Quit
-	case hasAnyPrefix(p.Path, "/System/", "/usr/libexec/", "/usr/sbin/", "/sbin/", "/usr/bin/", "/Library/Apple/"):
-		return "A built-in macOS component. macOS restarts these if they're killed, so it's rarely worth it.", Leave
 	case hasAnyPrefix(p.Path, "/opt/homebrew/", "/usr/local/"):
 		return "A command-line tool, probably installed with Homebrew.", Check
 	case strings.HasPrefix(p.Path, "/Library/"):
 		return "A background service that some app installed system-wide.", Check
-	case home != "" && strings.HasPrefix(p.Path, home):
+	case inHome(p.Path):
 		return "A program in your home folder: something you built, or a tool you installed.", Check
 	case !strings.HasPrefix(p.Path, "/"):
 		return "macOS doesn't show where this one lives. Usually a command started from a terminal or script, or a sandboxed service.", Check

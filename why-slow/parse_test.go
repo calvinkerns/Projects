@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -127,5 +129,63 @@ func TestBundlePaths(t *testing.T) {
 	viaOpen := LaunchItem{Program: "/usr/bin/open", Args: []string{"/usr/bin/open", "-a", "/Applications/Foo.app"}}
 	if got := targetBundle(viaOpen); got != "/Applications/Foo.app" {
 		t.Errorf("targetBundle = %q", got)
+	}
+}
+
+func TestVerdictsForMacOSComponents(t *testing.T) {
+	for _, c := range []struct {
+		path    string
+		verdict Verdict
+		canStop bool
+	}{
+		{"/System/Library/CoreServices/loginwindow.app/Contents/MacOS/loginwindow", Leave, false},
+		{"/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock", Leave, true},
+		{"/System/Library/CoreServices/AirPlayUIAgent.app/Contents/MacOS/AirPlayUIAgent", Leave, true},
+		{"/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal", Quit, true},
+		{"/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app/Contents/MacOS/Safari", Quit, true},
+		{"/Applications/Slack.app/Contents/MacOS/Slack", Quit, true},
+	} {
+		p, _ := parsePsLine("1 1 0.0 100 00:01 " + c.path)
+		g := groupProcs([]Proc{p})[0]
+		if g.Verdict() != c.verdict || g.CanStop() != c.canStop {
+			t.Errorf("%s: verdict %v canStop %v, want %v %v", p.Name, g.Verdict(), g.CanStop(), c.verdict, c.canStop)
+		}
+	}
+}
+
+func TestListenersOnLANAddressAreExposed(t *testing.T) {
+	got := parseListeners("p1\nn192.168.1.5:5173\np2\nn127.0.0.1:3000\n")
+	if !got[1].Exposed || got[0].Exposed {
+		t.Errorf("want 5173 on a LAN IP exposed and 3000 on loopback private, got %+v", got)
+	}
+}
+
+func TestPrintable(t *testing.T) {
+	if got := printable("evil\x1b]0;pwned\x07name\u0085"); got != "evil?]0;pwned?name?" {
+		t.Errorf("printable = %q", got)
+	}
+	if got := printable("Café Helper (Renderer)"); got != "Café Helper (Renderer)" {
+		t.Errorf("ordinary text changed: %q", got)
+	}
+}
+
+func TestInHome(t *testing.T) {
+	home, _ := os.UserHomeDir()
+	if !inHome(home+"/Desktop") || inHome(home+"2/Desktop") || tildify(home+"2/x") != home+"2/x" {
+		t.Error("home boundary")
+	}
+}
+
+func TestRunUsesCLocale(t *testing.T) {
+	t.Setenv("LC_ALL", "de_DE.UTF-8")
+	out, err := run("sysctl", "-n", "vm.loadavg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if l := parseLoad(out); strings.Contains(out, ",") || (l == [3]float64{} && !strings.Contains(out, "0.00 0.00 0.00")) {
+		t.Errorf("load not parseable under a German locale: %q", out)
+	}
+	if _, err := run("sh", "-c", "true"); err == nil {
+		t.Error("run should refuse commands outside its list")
 	}
 }

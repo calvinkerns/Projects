@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // LaunchItem is one launchd job that some app installed so it runs without
@@ -81,7 +83,11 @@ func readLaunchItems() []LaunchItem {
 				continue
 			}
 			seen[pl.Label] = true
-			it := LaunchItem{Label: pl.Label, Program: pl.Program, Args: pl.ProgramArguments, Daemon: d.daemon, PID: running[pl.Label]}
+			for i := range pl.ProgramArguments {
+				pl.ProgramArguments[i] = printable(pl.ProgramArguments[i])
+			}
+			it := LaunchItem{Label: printable(pl.Label), Program: printable(pl.Program), Args: pl.ProgramArguments,
+				Daemon: d.daemon, PID: running[pl.Label]}
 			if it.Program == "" && len(pl.ProgramArguments) > 0 {
 				it.Program = pl.ProgramArguments[0]
 			}
@@ -150,7 +156,8 @@ func vendorOf(it LaunchItem) string {
 	}
 	parts := strings.Split(it.Label, ".")
 	if len(parts) >= 2 && parts[1] != "" {
-		return strings.ToUpper(parts[1][:1]) + parts[1][1:]
+		r, size := utf8.DecodeRuneInString(parts[1])
+		return string(unicode.ToUpper(r)) + parts[1][size:]
 	}
 	return strings.ReplaceAll(it.Label, "_", " ")
 }
@@ -244,7 +251,9 @@ func collectLogin(procs []Proc) []*vendorGroup {
 	var list []*vendorGroup
 	counted := map[*Group]bool{}
 	for _, it := range items {
-		if it.PID == 0 {
+		// A job that runs /bin/sh or /usr/bin/python3 isn't running just
+		// because something else is using the same interpreter.
+		if it.PID == 0 && !hasAnyPrefix(it.Program, "/bin/", "/usr/bin/", "/usr/sbin/", "/sbin/") {
 			it.PID = byPath[filepath.Clean(it.Program)]
 		}
 		if it.PID == 0 {

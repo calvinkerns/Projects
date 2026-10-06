@@ -5,6 +5,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 )
 
 // The JSON report is what the Mac app reads: everything the CLI can show,
@@ -42,6 +43,7 @@ type jsonGroup struct {
 	Tip     string     `json:"tip,omitempty"`
 	Command string     `json:"command,omitempty"`
 	AppPath string     `json:"appPath,omitempty"`
+	CanStop bool       `json:"canStop"`
 	CPU     float64    `json:"cpu"`
 	Memory  uint64     `json:"memory"`
 	Procs   []jsonProc `json:"procs"`
@@ -53,6 +55,7 @@ type jsonProc struct {
 	CPU    float64 `json:"cpu"`
 	Memory uint64  `json:"memory"`
 	Uptime int64   `json:"uptime"` // seconds
+	Start  int64   `json:"start"`  // unix seconds; the app checks it before stopping
 	Path   string  `json:"path"`
 }
 
@@ -65,6 +68,8 @@ type jsonPort struct {
 	Note    string `json:"note,omitempty"`
 	Exposed bool   `json:"exposed"`
 	Uptime  int64  `json:"uptime"`
+	Start   int64  `json:"start"`
+	CanStop bool   `json:"canStop"`
 }
 
 type jsonVendor struct {
@@ -102,6 +107,7 @@ func writeJSON() error {
 	if err != nil {
 		return err
 	}
+	now := time.Now()
 	groups := groupProcs(procs)
 	byPID := map[int]Proc{}
 	for _, p := range procs {
@@ -125,7 +131,7 @@ func writeJSON() error {
 	for _, g := range relevantGroups(groups) {
 		jg := jsonGroup{
 			Title: g.Title, Verdict: g.Verdict().Key(), What: g.What(),
-			CPU: g.CPU, Memory: g.RSS, AppPath: appPath(g.Top().Path),
+			CPU: g.CPU, Memory: g.RSS, AppPath: appPath(g.Top().Path), CanStop: g.CanStop(),
 		}
 		if g.Entry != nil {
 			jg.Why, jg.Tip = g.Entry.Why, g.Entry.Tip
@@ -136,7 +142,7 @@ func writeJSON() error {
 		for _, p := range g.Procs {
 			jg.Procs = append(jg.Procs, jsonProc{
 				PID: p.PID, Parent: byPID[p.PPID].Name, CPU: p.CPU, Memory: p.RSS,
-				Uptime: int64(p.Elapsed.Seconds()), Path: p.Path,
+				Uptime: int64(p.Elapsed.Seconds()), Start: now.Add(-p.Elapsed).Unix(), Path: p.Path,
 			})
 		}
 		sort.SliceStable(jg.Procs, func(i, j int) bool { return jg.Procs[i].CPU > jg.Procs[j].CPU })
@@ -147,6 +153,7 @@ func writeJSON() error {
 		r.Ports = append(r.Ports, jsonPort{
 			Port: in.Port, PID: in.PID, Title: in.Title, Verdict: in.Verdict.Key(), Detail: in.Detail,
 			Note: in.Note, Exposed: in.Exposed, Uptime: int64(in.Proc.Elapsed.Seconds()),
+			Start: now.Add(-in.Proc.Elapsed).Unix(), CanStop: groupProcs([]Proc{in.Proc})[0].CanStop(),
 		})
 	}
 

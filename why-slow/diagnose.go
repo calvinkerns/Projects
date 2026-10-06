@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -95,9 +96,13 @@ func cpuFinding(g *Group, ncpu int) Finding {
 			f.Lines = append(f.Lines, fmt.Sprintf("It has been running for %s. If you don't recognise it, it may be stuck (kill %d).", ago(top.Elapsed), top.PID))
 		}
 		if n := len(g.Procs); n >= 3 && orphaned(g) {
+			pids := make([]string, n)
+			for i, p := range g.Procs {
+				pids[i] = strconv.Itoa(p.PID)
+			}
 			f.Lines = append(f.Lines, fmt.Sprintf(
-				"All %d copies have outlived the program that started them, so nothing is going to stop them. Stop them all with: pkill -f '%s'",
-				n, top.Args))
+				"All %d copies have outlived the program that started them, so nothing is going to stop them. Stop them all with: kill %s",
+				n, strings.Join(pids, " ")))
 		}
 	}
 	if g.Entry != nil && g.Entry.Tip != "" {

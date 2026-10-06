@@ -72,6 +72,40 @@ struct VerdictPill: View {
     }
 }
 
+// MARK: - Stopping
+
+struct StopRequest: Identifiable {
+    let id = UUID()
+    let title: String
+    let targets: [StopTarget]
+}
+
+/// What the confirmation explains before anything is stopped.
+func stopWarning(verdict: String) -> String {
+    let how = "Stop asks it to quit, like kill in Terminal. Force Stop also kills it if it hasn't quit "
+        + "within 2 seconds, which can lose unsaved work or leave a database needing recovery."
+    switch verdict {
+    case "leave": return "This is part of macOS. It will probably restart on its own, and things may misbehave until it does. " + how
+    case "quit": return "If it's an app, Quit is safer: it lets the app save first. " + how
+    default: return how
+    }
+}
+
+extension View {
+    /// The Stop / Force Stop confirmation every stop goes through.
+    func stopConfirmation(_ request: Binding<StopRequest?>, verdict: String, what: String, store: Store) -> some View {
+        confirmationDialog(request.wrappedValue?.title ?? "", isPresented: Binding(
+            get: { request.wrappedValue != nil },
+            set: { if !$0 { request.wrappedValue = nil } }
+        ), presenting: request.wrappedValue) { req in
+            Button("Stop") { store.stop(req.targets, what: what, force: false) }
+            Button("Force Stop", role: .destructive) { store.stop(req.targets, what: what, force: true) }
+        } message: { _ in
+            Text(stopWarning(verdict: verdict))
+        }
+    }
+}
+
 // MARK: - Cards
 
 struct Card<Content: View>: View {

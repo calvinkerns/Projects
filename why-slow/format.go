@@ -126,10 +126,28 @@ func clip(s string, n int) string {
 }
 
 func tildify(path string) string {
-	if home, err := os.UserHomeDir(); err == nil && strings.HasPrefix(path, home) {
+	if home, err := os.UserHomeDir(); err == nil && inHome(path) {
 		return "~" + path[len(home):]
 	}
 	return path
+}
+
+// inHome is true for paths inside the home folder, but not for
+// /Users/name2 next to /Users/name.
+func inHome(path string) bool {
+	home, err := os.UserHomeDir()
+	return err == nil && home != "" && (path == home || strings.HasPrefix(path, home+"/"))
+}
+
+// printable replaces control characters, so text from process names,
+// command lines and plists can't send escape sequences to the terminal.
+func printable(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r < 0x20 || (r >= 0x7f && r < 0xa0) {
+			return '?'
+		}
+		return r
+	}, s)
 }
 
 func firstSentence(s string) string {

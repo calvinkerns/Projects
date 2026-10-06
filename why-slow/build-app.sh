@@ -13,7 +13,7 @@ echo "building engine (Go)…"
 go build -o "$APP/Contents/Resources/why-slow" .
 
 echo "building window (Swift)…"
-swiftc -O -swift-version 5 -parse-as-library -target arm64-apple-macos14 \
+swiftc -O -swift-version 5 -parse-as-library -target "$(uname -m)-apple-macos14" \
 	app/*.swift -o "$APP/Contents/MacOS/Why Slow"
 cp app/Info.plist "$APP/Contents/Info.plist"
 
@@ -22,7 +22,7 @@ swift scripts/make-icon.swift build/AppIcon.iconset
 iconutil -c icns build/AppIcon.iconset -o "$APP/Contents/Resources/AppIcon.icns"
 
 # Ad-hoc signature: enough for macOS to run an app you built yourself.
-codesign --force --deep --sign - "$APP" 2>/dev/null
+codesign --force --deep --sign - "$APP"
 echo "built $APP"
 
 if [ "${1:-}" = "--install" ]; then

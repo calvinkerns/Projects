@@ -128,7 +128,9 @@ func parseListeners(out string) []Listener {
 				continue
 			}
 			host := addr[:i]
-			exposed := host == "*" || host == "0.0.0.0" || host == "[::]"
+			// Bound to a LAN address (vite --host 192.168.1.5) is just as
+			// reachable as bound to everything; only loopback is private.
+			exposed := !(strings.HasPrefix(host, "127.") || host == "[::1]" || host == "localhost")
 			key := [2]int{pid, port}
 			if l := seen[key]; l != nil {
 				l.Exposed = l.Exposed || exposed
