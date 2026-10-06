@@ -253,6 +253,9 @@ struct GroupDetail: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Divider()
+            Label(group.meaning, systemImage: verdictIcon(group.verdict))
+                .foregroundStyle(verdictColor(group.verdict))
+                .font(.callout)
             Text(group.what)
             if let why = group.why {
                 Text(why).foregroundStyle(.secondary)

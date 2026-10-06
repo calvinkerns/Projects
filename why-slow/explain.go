@@ -29,6 +29,7 @@ func explain(query string) error {
 			fmt.Println()
 		}
 		fmt.Printf("%s  %s\n", bold(g.Title), g.Verdict().Tag())
+		fmt.Printf("  %s\n", dim(g.Verdict().Meaning()))
 		fmt.Printf("  %s\n", g.What())
 		if g.Entry != nil && g.Entry.Why != "" {
 			fmt.Printf("  %s\n", g.Entry.Why)

@@ -58,6 +58,15 @@ func verdictLabel(_ verdict: String) -> String {
     }
 }
 
+func verdictIcon(_ verdict: String) -> String {
+    switch verdict {
+    case "leave": "gearshape"
+    case "wait": "hourglass"
+    case "quit": "checkmark.circle"
+    default: "magnifyingglass"
+    }
+}
+
 struct VerdictPill: View {
     let verdict: String
 

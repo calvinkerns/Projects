@@ -33,6 +33,7 @@ struct Finding: Decodable, Hashable {
 struct ProcGroup: Decodable, Identifiable {
     let title: String
     let verdict: String
+    let meaning: String
     let what: String
     let why: String?
     let tip: String?

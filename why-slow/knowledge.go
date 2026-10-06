@@ -15,6 +15,19 @@ const (
 	Check                // could be anything; look at what it is
 )
 
+// Meaning says what a verdict means in practice, and why.
+func (v Verdict) Meaning() string {
+	switch v {
+	case Leave:
+		return "Part of macOS. Stopping it won't help: macOS starts it again, and things can misbehave until it does."
+	case Wait:
+		return "Temporary background work that finishes on its own. Stopping it won't stick: macOS starts it again the next time something needs it, and it redoes the work from scratch."
+	case Quit:
+		return "An app, or part of one. Quitting it is safe and frees what it's using."
+	}
+	return "Could be anything, usually something you or a tool started. Check what it's running before stopping it."
+}
+
 // Entry is what we know about a process, keyed by executable or app name.
 type Entry struct {
 	Title       string
@@ -135,8 +148,9 @@ var knowledge = []Entry{
 	{
 		Title:   "Siri & Suggestions",
 		Names:   []string{"contextstored", "knowledge-agent", "duetexpertd", "suggestd", "biomesyncd", "BiomeAgent", "biomed", "intelligenceplatformd", "siriknowledged"},
-		What:    "On-device learning for Siri, Spotlight ranking and app suggestions.",
-		Why:     "Catches up in bursts, especially after updates.",
+		What:    "The background services behind Siri and suggestions. They learn which apps, files, contacts and websites you use, so that Spotlight, the keyboard, Safari, Mail, Messages and the share sheet can suggest the right ones.",
+		Why:     "They work in bursts: after a macOS update, after a busy day, or when an app asks for suggestions and one of them starts up to answer. Between bursts they use almost nothing.",
+		Tip:     "To make them do less, turn off the suggestion features you don't use under Siri (or Apple Intelligence & Siri) and Spotlight in System Settings. Stopping them here won't stick.",
 		Verdict: Wait,
 	},
 	{

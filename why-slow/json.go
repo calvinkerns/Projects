@@ -38,6 +38,7 @@ type jsonSystem struct {
 type jsonGroup struct {
 	Title   string     `json:"title"`
 	Verdict string     `json:"verdict"`
+	Meaning string     `json:"meaning"`
 	What    string     `json:"what"`
 	Why     string     `json:"why,omitempty"`
 	Tip     string     `json:"tip,omitempty"`
@@ -130,7 +131,7 @@ func writeJSON() error {
 
 	for _, g := range relevantGroups(groups) {
 		jg := jsonGroup{
-			Title: g.Title, Verdict: g.Verdict().Key(), What: g.What(),
+			Title: g.Title, Verdict: g.Verdict().Key(), Meaning: g.Verdict().Meaning(), What: g.What(),
 			CPU: g.CPU, Memory: g.RSS, AppPath: appPath(g.Top().Path), CanStop: g.CanStop(),
 		}
 		if g.Entry != nil {
