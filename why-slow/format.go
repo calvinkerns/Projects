@@ -60,6 +60,27 @@ func (v Verdict) paint(s string) string {
 	return yellow(s)
 }
 
+// share turns a per-core CPU figure (ps's "100% = one core") into a share of
+// the whole Mac, so a machine that's flat out reads 100% however many cores it
+// has. ps's per-process figures are estimates that can add up to a little
+// more than the machine has, so it's capped at 100.
+func share(cpu float64, ncpu int) string {
+	v := min(cpu/float64(max(ncpu, 1)), 100)
+	if v >= 9.95 {
+		return fmt.Sprintf("%.0f%%", v)
+	}
+	return fmt.Sprintf("%.1f%%", v)
+}
+
+// totalCPU is how much of the whole Mac is in use, 0–100.
+func totalCPU(groups []*Group, ncpu int) float64 {
+	sum := 0.0
+	for _, g := range groups {
+		sum += g.CPU
+	}
+	return min(sum/float64(max(ncpu, 1)), 100)
+}
+
 func human(b uint64) string {
 	switch {
 	case b >= 1<<30:

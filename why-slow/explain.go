@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 	"strconv"
 	"strings"
 )
@@ -21,6 +22,7 @@ func explain(query string) error {
 		return fmt.Errorf("nothing running matches %q", query)
 	}
 
+	cores := runtime.NumCPU()
 	for i, g := range sortByCPU(groups) {
 		if i > 0 {
 			fmt.Println()
@@ -33,8 +35,8 @@ func explain(query string) error {
 		if g.Entry != nil && g.Entry.Tip != "" {
 			fmt.Printf("  Tip: %s\n", g.Entry.Tip)
 		}
-		fmt.Printf("  %s\n", dim(fmt.Sprintf("%s · %.0f%% CPU · %s memory",
-			plural(len(g.Procs), "process", "processes"), g.CPU, human(g.RSS))))
+		fmt.Printf("  %s\n", dim(fmt.Sprintf("%s · %s of your CPU · %s memory",
+			plural(len(g.Procs), "process", "processes"), share(g.CPU, cores), human(g.RSS))))
 
 		for j, p := range g.Procs {
 			if j >= 10 {
@@ -45,8 +47,8 @@ func explain(query string) error {
 			if pp, ok := byPID[p.PPID]; ok {
 				parent = pp.Name
 			}
-			fmt.Printf("    %s  %5.1f%%  %8s  up %-4s  started by %s\n",
-				pad(strconv.Itoa(p.PID), 6), p.CPU, human(p.RSS), ago(p.Elapsed), parent)
+			fmt.Printf("    %s  %6s  %8s  up %-4s  started by %s\n",
+				pad(strconv.Itoa(p.PID), 6), share(p.CPU, cores), human(p.RSS), ago(p.Elapsed), parent)
 			fmt.Printf("      %s\n", dim(tildify(p.Path)))
 			if g.Verdict() == Check {
 				if cmd := commandLine(p); cmd != "" {

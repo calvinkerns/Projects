@@ -45,20 +45,20 @@ func watch() error {
 			fmt.Print("\x1b[H\x1b[2J")
 		}
 		printOverview(sys, groups, false)
-		printPeaks(peaks, started)
+		printPeaks(peaks, started, sys.NCPU)
 		fmt.Printf("\n%s\n", dim(fmt.Sprintf("refreshing every %s · Ctrl-C to stop", watchEvery)))
 
 		select {
 		case <-stop:
 			fmt.Println()
-			printPeaks(peaks, started)
+			printPeaks(peaks, started, sys.NCPU)
 			return nil
 		case <-tick.C:
 		}
 	}
 }
 
-func printPeaks(peaks map[string]*peak, since time.Time) {
+func printPeaks(peaks map[string]*peak, since time.Time, ncpu int) {
 	var list []*peak
 	for _, p := range peaks {
 		if p.CPU >= 30 {
@@ -68,13 +68,13 @@ func printPeaks(peaks map[string]*peak, since time.Time) {
 	sort.Slice(list, func(i, j int) bool { return list[i].CPU > list[j].CPU })
 	fmt.Printf("\n%s %s\n", bold("SPIKES"), dim("since "+since.Format("15:04:05")))
 	if len(list) == 0 {
-		fmt.Println(dim("  nothing has gone above 30% CPU"))
+		fmt.Println(dim("  nothing has used more than " + share(30, ncpu) + " of your CPU"))
 		return
 	}
 	for i, p := range list {
 		if i >= 5 {
 			break
 		}
-		fmt.Printf("  %5.0f%%  %s %s\n", p.CPU, pad(clip(p.Title, 28), 28), dim("at "+p.At.Format("15:04:05")))
+		fmt.Printf("  %6s  %s %s\n", share(p.CPU, ncpu), pad(clip(p.Title, 28), 28), dim("at "+p.At.Format("15:04:05")))
 	}
 }

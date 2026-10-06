@@ -14,6 +14,7 @@ struct Report: Decodable {
 
 struct SystemInfo: Decodable {
     let cores: Int
+    let cpuUsed: Double // percent of the whole Mac
     let load: [Double]
     let memTotal: UInt64
     let memFreePct: Int

@@ -41,7 +41,7 @@ func TestDiagnoseBusyProcess(t *testing.T) {
 		{PID: 12, Name: "WindowServer", CPU: 5},
 	})
 	_, fs := diagnose(calmSystem(), groups)
-	if len(fs) != 1 || fs[0].Title != "Spotlight is using 120% CPU across 2 processes." {
+	if len(fs) != 1 || fs[0].Title != "Spotlight is using 12% of your CPU across 2 processes." {
 		t.Fatalf("findings %s", titles(fs))
 	}
 	if last := fs[0].Lines[len(fs[0].Lines)-1]; !strings.HasPrefix(last, "Tip: ") {
@@ -113,5 +113,23 @@ func TestDiagnoseRunawayCopies(t *testing.T) {
 	}
 	if body := strings.Join(fs[0].Lines, "\n"); !strings.Contains(body, "pkill -f '/usr/bin/python3 lab1A.py'") {
 		t.Errorf("expected a pkill hint, got:\n%s", body)
+	}
+}
+
+func TestShare(t *testing.T) {
+	for _, c := range []struct {
+		cpu  float64
+		ncpu int
+		want string
+	}{
+		{1050, 10, "100%"}, // ps overshoots a little when everything is busy
+		{1000, 10, "100%"},
+		{120, 10, "12%"},
+		{22, 10, "2.2%"},
+		{50, 1, "50%"},
+	} {
+		if got := share(c.cpu, c.ncpu); got != c.want {
+			t.Errorf("share(%v, %d) = %q, want %q", c.cpu, c.ncpu, got, c.want)
+		}
 	}
 }

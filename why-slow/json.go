@@ -20,15 +20,18 @@ type jsonReport struct {
 }
 
 type jsonSystem struct {
-	Cores         int        `json:"cores"`
-	Load          [3]float64 `json:"load"`
-	MemTotal      uint64     `json:"memTotal"`
-	MemFreePct    int        `json:"memFreePct"`
-	SwapUsed      uint64     `json:"swapUsed"`
-	SwapTotal     uint64     `json:"swapTotal"`
-	DiskFree      uint64     `json:"diskFree"`
-	DiskTotal     uint64     `json:"diskTotal"`
-	CPUSpeedLimit int        `json:"cpuSpeedLimit"`
+	Cores   int        `json:"cores"`
+	CPUUsed float64    `json:"cpuUsed"` // percent of the whole Mac
+	Load    [3]float64 `json:"load"`
+	// cpu fields on groups and procs stay per core (100 = one core), the
+	// way ps reports them; divide by cores for a share of the whole Mac.
+	MemTotal      uint64 `json:"memTotal"`
+	MemFreePct    int    `json:"memFreePct"`
+	SwapUsed      uint64 `json:"swapUsed"`
+	SwapTotal     uint64 `json:"swapTotal"`
+	DiskFree      uint64 `json:"diskFree"`
+	DiskTotal     uint64 `json:"diskTotal"`
+	CPUSpeedLimit int    `json:"cpuSpeedLimit"`
 }
 
 type jsonGroup struct {
@@ -110,7 +113,7 @@ func writeJSON() error {
 		Status:   status,
 		Findings: findings,
 		System: jsonSystem{
-			Cores: sys.NCPU, Load: sys.Load, MemTotal: sys.MemTotal, MemFreePct: sys.MemFreePct,
+			Cores: sys.NCPU, CPUUsed: totalCPU(groups, sys.NCPU), Load: sys.Load, MemTotal: sys.MemTotal, MemFreePct: sys.MemFreePct,
 			SwapUsed: sys.SwapUsed, SwapTotal: sys.SwapTotal, DiskFree: sys.DiskFree, DiskTotal: sys.DiskTotal,
 			CPUSpeedLimit: sys.CPUSpeedLimit,
 		},

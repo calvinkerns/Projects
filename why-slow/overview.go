@@ -18,8 +18,8 @@ func overview(all bool) error {
 
 func printOverview(sys System, groups []*Group, all bool) {
 	parts := []string{
-		fmt.Sprintf("%d cores", sys.NCPU),
-		fmt.Sprintf("load %.1f %.1f %.1f", sys.Load[0], sys.Load[1], sys.Load[2]),
+		fmt.Sprintf("CPU %.0f%% used", totalCPU(groups, sys.NCPU)),
+		fmt.Sprintf("load %.1f on %d cores", sys.Load[0], sys.NCPU),
 	}
 	if sys.MemFreePct >= 0 {
 		parts = append(parts, fmt.Sprintf("%s RAM, %d%% free", human(sys.MemTotal), sys.MemFreePct))
@@ -45,13 +45,13 @@ func printOverview(sys System, groups []*Group, all bool) {
 		limit, minCPU = 1000, 0.1
 	}
 
-	fmt.Printf("\n%s %s\n", bold("CPU"), dim(fmt.Sprintf("(100%% = one core, you have %d)", sys.NCPU)))
+	fmt.Printf("\n%s %s\n", bold("CPU"), dim("(share of your whole Mac)"))
 	shown := 0
 	for _, g := range sortByCPU(groups) {
 		if shown >= limit || g.CPU < minCPU {
 			break
 		}
-		printRow(fmt.Sprintf("%5.0f%%", g.CPU), g)
+		printRow(fmt.Sprintf("%7s", share(g.CPU, sys.NCPU)), g)
 		shown++
 	}
 	if shown == 0 {

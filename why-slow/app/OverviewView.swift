@@ -114,11 +114,13 @@ struct StatTiles: View {
         // Same thresholds as the CLI's diagnosis.
         let diskLow = system.diskTotal > 0 && (system.diskFree < system.diskTotal / 10 || system.diskFree < 10 << 30)
         HStack(spacing: 12) {
+            // Load above the core count means work is queueing for the CPU even
+            // if the percentage hasn't caught up yet.
             StatTile(title: "CPU", icon: "cpu",
-                     value: String(format: "%.1f", load),
-                     detail: "load on \(system.cores) cores",
-                     fraction: load / Double(max(system.cores, 1)),
-                     warn: load > Double(system.cores))
+                     value: String(format: "%.0f%% used", system.cpuUsed),
+                     detail: String(format: "all %d cores · load %.1f", system.cores, load),
+                     fraction: system.cpuUsed / 100,
+                     warn: system.cpuUsed >= 90 || load > Double(system.cores))
             StatTile(title: "Memory", icon: "memorychip",
                      value: system.memFreePct >= 0 ? "\(system.memFreePct)% free" : "?",
                      detail: "of \(bytes(system.memTotal))",
@@ -149,12 +151,12 @@ struct SpikesCard: View {
                       systemImage: "waveform.path.ecg")
                     .font(.headline)
                 if spikes.isEmpty {
-                    Text("Nothing has gone above 30% CPU yet. Leave this running and come back when it feels slow.")
+                    Text("Nothing has spiked yet. Leave this running and come back when it feels slow.")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(spikes, id: \.title) { s in
                         HStack {
-                            Text(String(format: "%.0f%%", s.cpu))
+                            Text(cpuShare(s.cpu))
                                 .monospacedDigit()
                                 .frame(width: 56, alignment: .trailing)
                             Text(s.title)
@@ -178,7 +180,7 @@ struct GroupRow: View {
     @Binding var isExpanded: Bool
 
     private var amount: String {
-        sort == .cpu ? String(format: "%.0f%%", group.cpu) : bytes(group.memory)
+        sort == .cpu ? cpuShare(group.cpu) : bytes(group.memory)
     }
 
     private var fraction: Double {
@@ -304,7 +306,7 @@ struct GroupDetail: View {
                 ForEach(group.procs.prefix(8)) { p in
                     GridRow {
                         Text(verbatim: String(p.pid))
-                        Text(String(format: "%.1f%%", p.cpu))
+                        Text(cpuShare(p.cpu))
                         Text(bytes(p.memory))
                         Text(uptime(p.uptime))
                         Text(p.parent.isEmpty ? "?" : p.parent)

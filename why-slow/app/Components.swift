@@ -9,6 +9,13 @@ func bytes(_ b: UInt64) -> String {
     return String(format: "%.0f KB", d / 1024)
 }
 
+/// A per-core CPU figure (100 = one core, as ps reports it) as a share of the
+/// whole Mac, capped at 100% like the CLI.
+func cpuShare(_ cpu: Double) -> String {
+    let v = min(cpu / Double(max(ProcessInfo.processInfo.processorCount, 1)), 100)
+    return v >= 9.95 ? String(format: "%.0f%%", v) : String(format: "%.1f%%", v)
+}
+
 func uptime(_ seconds: Int) -> String {
     switch seconds {
     case 172_800...: "\(seconds / 86400)d"

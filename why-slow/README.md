@@ -4,19 +4,22 @@ Activity Monitor tells you *what* is running. `why-slow` tells you *why*, and wh
 
 ```
 $ why-slow
-Busy  10 cores · load 7.7 4.6 3.3 · 16.0 GB RAM, 50% free · swap 1.6 GB · 89.8 GB disk free
+Busy  CPU 74% used · load 7.7 on 10 cores · 16.0 GB RAM, 50% free · swap 1.6 GB · 89.8 GB disk free
 
-▶ Spotlight is using 55% CPU across 9 processes.
+▶ Spotlight is using 55% of your CPU across 9 processes.
   Spotlight, indexing your files so search works.
   Spikes after lots of files change (cloning repos, npm install, unzipping, big downloads)
   and after macOS updates. It usually settles within 10–30 minutes.
   Tip: Keep it out of build and dependency folders: add them to Spotlight's privacy list.
 
-CPU (100% = one core, you have 10)
-     55%  Spotlight ×9                 wait it out   Spotlight, indexing your files so search works.
-     23%  Gatekeeper (syspolicyd)      wait it out   Gatekeeper, checking that the apps you run are signed…
-      7%  Adobe Creative Cloud ×17     safe to quit  Adobe's background services: sync, updates, fonts…
+CPU (share of your whole Mac)
+      55%  Spotlight ×9                 wait it out   Spotlight, indexing your files so search works.
+      12%  Gatekeeper (syspolicyd)      wait it out   Gatekeeper, checking that the apps you run are signed…
+     0.7%  Adobe Creative Cloud ×17     safe to quit  Adobe's background services: sync, updates, fonts…
 ```
+
+CPU is shown as a share of the whole Mac, so 100% means every core is busy. (Activity Monitor and
+`top` count per core instead, where a 10-core Mac tops out at 1000%.)
 
 Every process gets one of four verdicts:
 

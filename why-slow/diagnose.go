@@ -33,11 +33,14 @@ func diagnose(s System, groups []*Group) (status string, fs []Finding) {
 		})
 	}
 
+	// Worth a headline at 10% of the whole Mac (one core pinned, on yours),
+	// but never below 40% of one core on Macs with only a few cores.
+	busy := max(40, 10*float64(s.NCPU))
 	for i, g := range sortByCPU(groups) {
-		if i >= 2 || g.CPU < 40 {
+		if i >= 2 || g.CPU < busy {
 			break
 		}
-		fs = append(fs, cpuFinding(g))
+		fs = append(fs, cpuFinding(g, s.NCPU))
 	}
 
 	// macOS doesn't move swapped pages back until they're needed, so swap left
@@ -73,8 +76,8 @@ func diagnose(s System, groups []*Group) (status string, fs []Finding) {
 	return status, fs
 }
 
-func cpuFinding(g *Group) Finding {
-	title := fmt.Sprintf("%s is using %.0f%% CPU", g.Title, g.CPU)
+func cpuFinding(g *Group, ncpu int) Finding {
+	title := fmt.Sprintf("%s is using %s of your CPU", g.Title, share(g.CPU, ncpu))
 	if len(g.Procs) > 1 {
 		title += fmt.Sprintf(" across %d processes", len(g.Procs))
 	}
