@@ -80,6 +80,23 @@ Rebuild with the same command after changing anything.
 The app is SwiftUI (`app/`), compiled with `swiftc`, so it needs the Xcode command line tools but no
 Xcode project. It runs the Go binary bundled in its Resources with `--json` and draws what comes back.
 
+### Sharing it
+
+```
+./build-app.sh --zip        # makes build/Why Slow.zip (works on Apple Silicon and Intel, macOS 14+)
+```
+
+Send the zip (AirDrop, Messages, a GitHub release). The app isn't notarized by Apple, so the first
+time your friend opens it macOS says it can't verify it. To open it anyway:
+
+1. Unzip it and drag **Why Slow** into Applications.
+2. Double-click it. When macOS warns, click **Done** (not Move to Trash).
+3. Open **System Settings → Privacy & Security**, scroll down to "Why Slow was blocked", and click
+   **Open Anyway**, then confirm with their password.
+
+After that it opens normally. Skipping this step for everyone would mean signing it with a paid Apple
+Developer ID and notarizing it.
+
 ## Building the CLI
 
 Go 1.22+, no dependencies, macOS only.
