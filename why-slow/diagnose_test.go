@@ -143,3 +143,12 @@ func TestDiagnoseBusyGPU(t *testing.T) {
 		t.Errorf("status %q, findings %s", status, titles(fs))
 	}
 }
+
+func TestUsedPct(t *testing.T) {
+	if got := usedPct(366, 460); got != 79 {
+		t.Errorf("usedPct(366, 460) = %d", got)
+	}
+	if got := usedPct(5, 0); got != 0 { // statfs failed: no total to divide by
+		t.Errorf("usedPct with no total = %d", got)
+	}
+}
