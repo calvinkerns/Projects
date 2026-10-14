@@ -194,6 +194,21 @@ class App {
         });
         
         document.getElementById('loadVanGoghBtn').onclick = () => this.loadVanGoghRoom();
+
+        // Touch screens: Menu and ? show and hide the two panels, one at a time.
+        const panels = [
+            [document.getElementById('menuToggle'), document.getElementById('controls')],
+            [document.getElementById('helpToggle'), document.getElementById('helpPanel')],
+        ];
+        for (const [toggle, panel] of panels) {
+            toggle.onclick = () => {
+                const open = !panel.classList.contains('open');
+                for (const [t, p] of panels) {
+                    p.classList.toggle('open', open && p === panel);
+                    t.setAttribute('aria-expanded', String(open && p === panel));
+                }
+            };
+        }
     }
 
     async loadVanGoghRoom() {

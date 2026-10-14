@@ -4,27 +4,71 @@ export class Controls {
     constructor(camera) {
         this.camera = camera;
         this.keys = new Set();
-        this.isMouseDown = false;
+        this.lookPointer = null; // the mouse or finger dragging to look around
+        this.lastX = 0;
+        this.lastY = 0;
         this.speed = 0.5;
         this.sensitivity = 0.1;
-        this.setupEventListeners(); 
+        // a swipe covers far fewer pixels than a mouse drag, so turn faster
+        this.touchSensitivity = 0.25;
+        this.setupEventListeners();
     }
 
+    // Handlers are assigned rather than added, so the Controls made for a
+    // new camera replace the old ones instead of stacking on top of them.
     setupEventListeners() {
-        document.onmousedown = () => this.isMouseDown = true;
-        document.onmouseup = () => this.isMouseDown = false;
-        document.onmousemove = (e) => this.handleMouseMove(e);
+        // Drag on the scene to look around, with the mouse or one finger.
+        // Pointer capture keeps the drag going if it leaves the canvas.
+        const canvas = this.camera.canvas;
+        canvas.onpointerdown = (e) => {
+            if (this.lookPointer !== null) return; // already dragging
+            this.lookPointer = e.pointerId;
+            this.lastX = e.clientX;
+            this.lastY = e.clientY;
+            canvas.setPointerCapture(e.pointerId);
+        };
+        canvas.onpointermove = (e) => {
+            if (e.pointerId !== this.lookPointer) return;
+            // A mouse turns the way it moves; on a touch screen the scene
+            // follows the finger instead, like Street View.
+            const s = e.pointerType === 'mouse' ? this.sensitivity : -this.touchSensitivity;
+            this.look((e.clientX - this.lastX) * s, (e.clientY - this.lastY) * s);
+            this.lastX = e.clientX;
+            this.lastY = e.clientY;
+        };
+        canvas.onpointerup = canvas.onpointercancel = canvas.onlostpointercapture = (e) => {
+            if (e.pointerId === this.lookPointer) this.lookPointer = null;
+        };
+
         document.onkeydown = (e) => this.keys.add(e.key.toLowerCase());
         document.onkeyup = (e) => this.keys.delete(e.key.toLowerCase());
+
+        // On-screen move buttons (touch screens) hold their key down while
+        // pressed, so they drive the same movement as the keyboard.
+        for (const button of document.querySelectorAll('[data-key]')) {
+            const key = button.dataset.key;
+            button.onpointerdown = (e) => {
+                button.setPointerCapture(e.pointerId);
+                button.classList.add('pressed');
+                this.keys.add(key);
+            };
+            button.onpointerup = button.onpointercancel = button.onlostpointercapture = () => {
+                button.classList.remove('pressed');
+                this.keys.delete(key);
+            };
+            button.oncontextmenu = (e) => e.preventDefault(); // long press
+        }
+
+        // A key or button released while the page was in the background
+        // would otherwise keep the camera moving.
+        window.onblur = () => this.keys.clear();
     }
 
-    handleMouseMove(e) {
-        if (this.isMouseDown) {
-            this.camera.yaw += e.movementX * this.sensitivity;
-            this.camera.pitch -= e.movementY * this.sensitivity;
-            this.camera.pitch = Math.max(-89, Math.min(89, this.camera.pitch));
-            this.camera.updateMatrices();
-        }
+    look(dx, dy) {
+        this.camera.yaw += dx;
+        this.camera.pitch -= dy;
+        this.camera.pitch = Math.max(-89, Math.min(89, this.camera.pitch));
+        this.camera.updateMatrices();
     }
 
     updateMovement() {

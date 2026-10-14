@@ -2,12 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Simple Splat Viewer</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="icon" href="data:,">
 </head>
 <body>
     <canvas id="glcanvas"></canvas>
+
+    <!-- Touch screens only: the panels start hidden behind these so the scene is visible. -->
+    <button id="menuToggle" class="touch-only panel-toggle" aria-controls="controls" aria-expanded="false">Menu</button>
+    <button id="helpToggle" class="touch-only panel-toggle" aria-controls="helpPanel" aria-expanded="false" aria-label="Help">?</button>
+
+    <div id="movePad" class="touch-only">
+        <button data-key="w" class="move-forward" aria-label="Move forward">&#9650;</button>
+        <button data-key="a" class="move-left" aria-label="Strafe left">&#9664;</button>
+        <button data-key="d" class="move-right" aria-label="Strafe right">&#9654;</button>
+        <button data-key="s" class="move-back" aria-label="Move back">&#9660;</button>
+    </div>
+    <div id="liftPad" class="touch-only">
+        <button data-key=" " aria-label="Move up">Up</button>
+        <button data-key="shift" aria-label="Move down">Down</button>
+    </div>
     <div id="controls">
         <button id="loadSpiralBtn">Load Spiral</button>
         <button id="loadGridBtn">Load Grid</button>
@@ -23,7 +39,13 @@
 
     <div id="helpPanel">
         <h2>Controls</h2>
-        <dl class="help-keys">
+        <dl class="help-keys touch-only">
+            <dt>Drag</dt><dd>Swipe on the scene to look around</dd>
+            <dt>&#9650; &#9660;</dt><dd>Move forward / back</dd>
+            <dt>&#9664; &#9654;</dt><dd>Strafe left / right</dd>
+            <dt>Up / Down</dt><dd>Fly up / down</dd>
+        </dl>
+        <dl class="help-keys desktop-only">
             <dt>W / S</dt><dd>Move forward / back</dd>
             <dt>A / D</dt><dd>Strafe left / right</dd>
             <dt>Space</dt><dd>Move up</dd>

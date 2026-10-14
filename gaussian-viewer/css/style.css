@@ -209,3 +209,144 @@ button:hover {
         max-height: 40vh;
     }
 }
+
+/* ---- Touch screens ---------------------------------------------------- */
+
+.touch-only {
+    display: none;
+}
+
+#glcanvas {
+    /* the canvas handles drags itself; don't let the page scroll or zoom */
+    touch-action: none;
+}
+
+@media (pointer: coarse) {
+    .touch-only {
+        display: revert;
+    }
+    .desktop-only {
+        display: none;
+    }
+    .help-keys.touch-only {
+        display: grid;
+    }
+
+    body {
+        overscroll-behavior: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+    }
+
+    button {
+        touch-action: manipulation; /* no double-tap zoom */
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .panel-toggle {
+        position: fixed;
+        top: calc(12px + env(safe-area-inset-top));
+        z-index: 200;
+        min-width: 48px;
+        height: 48px;
+        margin: 0;
+        padding: 0 16px;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 24px;
+        background: rgba(0, 0, 0, 0.7);
+        border: 2px solid #4CAF50;
+        color: #4CAF50;
+    }
+    .panel-toggle[aria-expanded="true"] {
+        background: #4CAF50;
+        color: #000;
+    }
+    #menuToggle {
+        left: calc(12px + env(safe-area-inset-left));
+    }
+    #helpToggle {
+        right: calc(12px + env(safe-area-inset-right));
+    }
+
+    /* Panels drop down below their toggles and stay hidden until opened. */
+    #controls,
+    #helpPanel {
+        display: none;
+        top: calc(72px + env(safe-area-inset-top));
+        bottom: auto;
+        max-height: calc(100vh - 260px);
+        overflow-y: auto;
+        box-sizing: border-box;
+    }
+    #controls.open,
+    #helpPanel.open {
+        display: block;
+    }
+    #controls {
+        left: calc(12px + env(safe-area-inset-left));
+        right: calc(12px + env(safe-area-inset-right));
+        min-width: 0;
+        padding: 10px;
+    }
+    #controls.open {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    #controls button {
+        margin: 0;
+        padding: 14px 10px;
+        font-size: 15px;
+        min-height: 48px;
+    }
+    #helpPanel {
+        left: calc(12px + env(safe-area-inset-left));
+        right: calc(12px + env(safe-area-inset-right));
+        width: auto;
+        font-size: 15px;
+    }
+
+    /* Movement: a d-pad bottom left, up/down bottom right, sized for thumbs. */
+    #movePad,
+    #liftPad {
+        position: fixed;
+        bottom: calc(20px + env(safe-area-inset-bottom));
+        z-index: 150;
+        display: grid;
+        gap: 8px;
+    }
+    #movePad {
+        left: calc(20px + env(safe-area-inset-left));
+        grid-template-columns: repeat(3, 60px);
+        grid-template-rows: repeat(3, 60px);
+    }
+    #liftPad {
+        right: calc(20px + env(safe-area-inset-right));
+        grid-template-columns: 76px;
+        grid-template-rows: repeat(2, 60px);
+    }
+    .move-forward { grid-area: 1 / 2; }
+    .move-left    { grid-area: 2 / 1; }
+    .move-right   { grid-area: 2 / 3; }
+    .move-back    { grid-area: 3 / 2; }
+
+    #movePad button,
+    #liftPad button {
+        margin: 0;
+        padding: 0;
+        font-size: 20px;
+        font-weight: bold;
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.55);
+        border: 2px solid rgba(76, 175, 80, 0.8);
+        color: #4CAF50;
+        touch-action: none; /* holding a button must not scroll or zoom */
+    }
+    #movePad button.pressed,
+    #liftPad button.pressed {
+        background: #4CAF50;
+        color: #000;
+    }
+}
